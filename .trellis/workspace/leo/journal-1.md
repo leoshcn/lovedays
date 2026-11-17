@@ -97,3 +97,24 @@ Only one pinned day per user (service-level, transactional unpin of others; REST
 ### Status
 
 [OK] **Completed**
+
+
+## Session 4: 视觉设计优化与暗色模式
+
+**Date**: 2026-11-17
+**Task**: 视觉设计优化与暗色模式
+**Branch**: `main`
+
+### Summary
+
+规划并实现视觉优化：语义色 token（亮/暗）、系统/浅色/深色三态主题（localStorage + 防闪烁脚本）、lucide 图标、Outfit 数字字体、弹窗进出场动画/Esc/滚动锁定、卡片微交互、focus-visible 与 reduced-motion；check 修复弹窗计时器误关新弹窗的 bug 与暗色代码块对比度；已通过 deploy.sh 限内存构建部署到部署机（160b3cd，健康检查 200）。浏览器人工验收由用户进行。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `160b3cd` | (see git log) |
+
+### Status
+
+[OK] **Completed**
