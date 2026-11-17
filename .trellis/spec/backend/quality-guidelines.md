@@ -11,6 +11,7 @@
 - TS strict + `noUncheckedIndexedAccess`.
 - Validate all external input with Zod schemas from `lib/days/schemas.ts`; for partial updates validate the **merged** row (see `updateDay`).
 - `once` days: reject past `targetDate`; purge expired ones lazily at the start of every read (`purgeExpired`). No cron.
+- Single pin: at most one pinned day per user. Enforced in `createDay`/`updateDay` (`unpinOthers` in the same `db.transaction`), so web, REST and MCP all obey it — never enforce it only in the UI.
 - API keys: store only SHA-256 hash; plaintext returned once. Write endpoints/tools must call `requireWrite(p)`.
 
 ## Forbidden
