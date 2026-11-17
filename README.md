@@ -35,6 +35,15 @@ pnpm dev                     # http://localhost:3000
 | `pnpm build` | 生产构建 |
 | `pnpm db:generate` | 修改 schema 后生成迁移 |
 
+## 部署（Docker）
+
+```bash
+echo "DEPLOY_TARGET=root@your-server" > .env.deploy   # 本地文件，不提交
+bash scripts/deploy.sh
+```
+
+脚本把当前提交传到目标机，在限制了内存/CPU 的临时容器里构建，再用 `docker compose` 启动 app + PostgreSQL（默认端口 3060）。首次部署会自动生成 `.env`（随机密钥），需在目标机上把 `BETTER_AUTH_URL` 改为实际访问地址；经反向代理访问时把代理地址加入 `TRUSTED_ORIGINS`。
+
 ## 接入
 
 在「设置」页创建 API Key（只显示一次）。

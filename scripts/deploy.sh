@@ -7,10 +7,18 @@
 # copies the prebuilt output (Dockerfile.runtime).
 #
 # Usage: scripts/deploy.sh [user@host] [remote_dir]
+#   Defaults can be kept in a local, git-ignored .env.deploy:
+#     DEPLOY_TARGET=root@your-server
+#     DEPLOY_DIR=/opt/lovedays
 set -euo pipefail
 
-TARGET="${1:-root@your-server}"
-REMOTE_DIR="${2:-/opt/lovedays}"
+if [ -f .env.deploy ]; then set -a; . ./.env.deploy; set +a; fi
+TARGET="${1:-${DEPLOY_TARGET:-}}"
+REMOTE_DIR="${2:-${DEPLOY_DIR:-/opt/lovedays}}"
+if [ -z "$TARGET" ]; then
+  echo "Usage: scripts/deploy.sh user@host [remote_dir]  (or set DEPLOY_TARGET in .env.deploy)" >&2
+  exit 1
+fi
 REV="$(git rev-parse --short HEAD)"
 ARCHIVE="lovedays-${REV}.tar.gz"
 BUILD_MEMORY="${BUILD_MEMORY:-3g}"
@@ -37,6 +45,7 @@ if [ ! -s .env ]; then
       -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 24)|" \
       .env.production.example > .env.tmp
   chmod 600 .env.tmp && mv .env.tmp .env
+  echo "!! Edit $DIR/.env: set BETTER_AUTH_URL (and TRUSTED_ORIGINS) to the real URL, then re-run" >&2
 fi
 set -a; . ./.env; set +a
 
