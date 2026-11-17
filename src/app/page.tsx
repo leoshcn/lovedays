@@ -2,13 +2,24 @@ import Link from "next/link";
 import { DayBoard } from "@/components/day-board";
 import { SignOutButton } from "@/components/sign-out-button";
 import { requireUser } from "@/lib/auth/session";
+import { parseCategory } from "@/lib/days/categories";
+import { getCategoryNames } from "@/lib/services/categories";
 import { listDays, userToday } from "@/lib/services/days";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await requireUser();
-  const [days, today] = await Promise.all([listDays(user.id), userToday(user.id)]);
+  const { category } = await searchParams;
+  const [days, today, names] = await Promise.all([
+    listDays(user.id),
+    userToday(user.id),
+    getCategoryNames(user.id),
+  ]);
 
   return (
     <main className="mx-auto max-w-5xl px-4 pt-6 pb-28">
@@ -21,7 +32,7 @@ export default async function HomePage() {
           <SignOutButton />
         </nav>
       </header>
-      <DayBoard days={days} today={today} />
+      <DayBoard days={days} today={today} names={names} category={parseCategory(category)} />
     </main>
   );
 }

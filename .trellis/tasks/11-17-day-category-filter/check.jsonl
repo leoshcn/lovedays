@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend quality checks"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify generated migration only adds category_label, no hand-edited SQL"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality checks"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "DayCategory typing across layers"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check color/category compatibility across REST, MCP, OpenAPI"}

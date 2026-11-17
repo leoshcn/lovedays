@@ -27,7 +27,8 @@ export function createMcpServer(p: ApiPrincipal): McpServer {
       instructions:
         "LoveDays manages countdown/anniversary days. kind=once: deleted automatically after the date; " +
         "kind=countup: after the date shows days elapsed; kind=repeat: recurs every repeatInterval repeatUnit(s). " +
-        "Dates are YYYY-MM-DD in the user's time zone.",
+        "Dates are YYYY-MM-DD in the user's time zone. Each day has a category (rose/orange/amber/emerald/sky/violet/slate) " +
+        "that determines its color; categoryName is the user's name for it. color is a deprecated alias of category.",
     },
   );
 
@@ -49,7 +50,7 @@ export function createMcpServer(p: ApiPrincipal): McpServer {
 
   server.registerTool(
     "create_day",
-    { title: "Create day", description: "Create a countdown/anniversary day.", inputSchema: createDayShape },
+    { title: "Create day", description: "Create a countdown/anniversary day. Set category to classify it (default rose).", inputSchema: createDayShape },
     (input) =>
       run(async () => {
         requireWrite(p);
@@ -61,7 +62,8 @@ export function createMcpServer(p: ApiPrincipal): McpServer {
     "update_day",
     {
       title: "Update day",
-      description: "Update fields of a day. Only provided fields change. Use pinned=true/false to pin or unpin.",
+      description:
+        "Update fields of a day. Only provided fields change. Use pinned=true/false to pin or unpin; category to reclassify.",
       inputSchema: { ...idShape, ...updateDayShape },
     },
     ({ id, ...patch }) =>

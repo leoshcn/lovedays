@@ -1,6 +1,7 @@
 import { and, eq, lt } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import type { DayRow } from "@/lib/db/schema";
+import { DEFAULT_CATEGORY, type CategoryNames, type DayCategory } from "@/lib/days/categories";
 import { computeDay, describe, sortDays, todayIn, type ComputedDay } from "@/lib/days/engine";
 import {
   createDaySchema,
@@ -9,6 +10,7 @@ import {
   type UpdateDayInput,
 } from "@/lib/days/schemas";
 import { AppError } from "@/lib/errors";
+import { getCategoryNames } from "./categories";
 
 /**
  * Day service. Auth-agnostic: callers (web actions, REST, MCP) resolve the userId first.
@@ -24,7 +26,11 @@ export interface DayDto extends ComputedDay {
   repeatUnit: DayRow["repeatUnit"];
   repeatInterval: number | null;
   pinned: boolean;
-  color: string;
+  category: DayCategory;
+  /** The user's display name for the category (default or renamed). */
+  categoryName: string;
+  /** @deprecated Same value as `category` (the category determines the color). */
+  color: DayCategory;
   /** Human-readable label, e.g. 「距离 生日 还有 3 天」 */
   label: string;
   createdAt: string;
@@ -48,7 +54,7 @@ async function purgeExpired(userId: string, today: string): Promise<void> {
     .where(and(eq(day.userId, userId), eq(day.kind, "once"), lt(day.targetDate, today)));
 }
 
-function toDto(row: DayRow, today: string): DayDto {
+function toDto(row: DayRow, today: string, names: CategoryNames): DayDto {
   const computed = computeDay(row, today);
   return {
     id: row.id,
@@ -59,7 +65,9 @@ function toDto(row: DayRow, today: string): DayDto {
     repeatUnit: row.repeatUnit,
     repeatInterval: row.repeatInterval,
     pinned: row.pinned,
-    color: row.color,
+    category: row.category,
+    categoryName: names[row.category],
+    color: row.category,
     ...computed,
     label: describe(row.title, computed),
     createdAt: row.createdAt.toISOString(),
@@ -74,6 +82,11 @@ function normalizeRepeat<T extends { kind: DayRow["kind"]; repeatUnit?: DayRow["
   return v.kind === "repeat" ? v : { ...v, repeatUnit: null, repeatInterval: null };
 }
 
+/** Category input: `category` wins over the deprecated `color` alias. */
+function inputCategory(v: { category?: DayCategory; color?: DayCategory }): DayCategory | undefined {
+  return v.category ?? v.color;
+}
+
 function assertNotExpired(v: { kind: DayRow["kind"]; targetDate: string }, today: string): void {
   if (v.kind === "once" && v.targetDate < today) {
     throw new AppError("validation_error", "targetDate: 一次性倒数日的日期不能早于今天");
@@ -84,8 +97,11 @@ export async function listDays(userId: string): Promise<DayDto[]> {
   const today = await userToday(userId);
   await purgeExpired(userId, today);
   const db = await getDb();
-  const rows = await db.select().from(day).where(eq(day.userId, userId));
-  return sortDays(rows.map((r) => toDto(r, today)));
+  const [rows, names] = await Promise.all([
+    db.select().from(day).where(eq(day.userId, userId)),
+    getCategoryNames(userId),
+  ]);
+  return sortDays(rows.map((r) => toDto(r, today, names)));
 }
 
 async function findRow(userId: string, id: string): Promise<DayRow> {
@@ -101,7 +117,8 @@ async function findRow(userId: string, id: string): Promise<DayRow> {
 export async function getDay(userId: string, id: string): Promise<DayDto> {
   const today = await userToday(userId);
   await purgeExpired(userId, today);
-  return toDto(await findRow(userId, id), today);
+  const [row, names] = await Promise.all([findRow(userId, id), getCategoryNames(userId)]);
+  return toDto(row, today, names);
 }
 
 export async function createDay(userId: string, input: CreateDayInput): Promise<DayDto> {
@@ -121,10 +138,10 @@ export async function createDay(userId: string, input: CreateDayInput): Promise<
       repeatInterval: data.repeatInterval ?? null,
       note: data.note || null,
       pinned: data.pinned ?? false,
-      color: data.color ?? "rose",
+      category: inputCategory(data) ?? DEFAULT_CATEGORY,
     })
     .returning();
-  return toDto(row!, today);
+  return toDto(row!, today, await getCategoryNames(userId));
 }
 
 export async function updateDay(userId: string, id: string, input: UpdateDayInput): Promise<DayDto> {
@@ -140,7 +157,7 @@ export async function updateDay(userId: string, id: string, input: UpdateDayInpu
       repeatInterval: patch.repeatInterval !== undefined ? patch.repeatInterval : current.repeatInterval,
       note: patch.note !== undefined ? patch.note : current.note,
       pinned: patch.pinned ?? current.pinned,
-      color: patch.color ?? current.color,
+      category: inputCategory(patch) ?? current.category,
     }),
   );
   const today = await userToday(userId);
@@ -156,12 +173,12 @@ export async function updateDay(userId: string, id: string, input: UpdateDayInpu
       repeatInterval: merged.repeatInterval ?? null,
       note: merged.note || null,
       pinned: merged.pinned ?? false,
-      color: merged.color ?? "rose",
+      category: merged.category ?? DEFAULT_CATEGORY,
       updatedAt: new Date(),
     })
     .where(and(eq(day.id, id), eq(day.userId, userId)))
     .returning();
-  return toDto(row!, today);
+  return toDto(row!, today, await getCategoryNames(userId));
 }
 
 export async function setPinned(userId: string, id: string, pinned: boolean): Promise<DayDto> {

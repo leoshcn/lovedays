@@ -1,20 +1,44 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { createDayAction, deleteDayAction, togglePinAction, updateDayAction } from "@/app/actions";
+import { countByCategory, filterDays, type CategoryNames, type DayCategory } from "@/lib/days/categories";
 import type { DayDto } from "@/lib/services/days";
+import { CategoryFilter } from "./category-filter";
 import { DayCard } from "./day-card";
 import { DayForm } from "./day-form";
 
 type Editing = { mode: "create" } | { mode: "edit"; day: DayDto } | null;
 
-export function DayBoard({ days, today }: { days: DayDto[]; today: string }) {
+interface Props {
+  days: DayDto[];
+  today: string;
+  names: CategoryNames;
+  /** Category requested via `?category=` (already parsed; null = 全部) */
+  category: DayCategory | null;
+}
+
+export function DayBoard({ days, today, names, category }: Props) {
   const [editing, setEditing] = useState<Editing>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const hero = days[0]?.pinned ? days[0] : undefined;
-  const rest = hero ? days.slice(1) : days;
+  const counts = countByCategory(days);
+  // A category with no days left (e.g. its last day was deleted) falls back to 全部.
+  const active = category && counts[category] > 0 ? category : null;
+  const stale = category !== null && active === null;
+
+  useEffect(() => {
+    if (stale) router.replace(pathname, { scroll: false });
+  }, [stale, pathname, router]);
+
+  // Pinned days (including the hero) are never filtered out.
+  const visible = filterDays(days, active);
+  const hero = visible[0]?.pinned ? visible[0] : undefined;
+  const rest = hero ? visible.slice(1) : visible;
 
   function act(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
@@ -47,6 +71,7 @@ export function DayBoard({ days, today }: { days: DayDto[]; today: string }) {
         </div>
       ) : (
         <div className="space-y-4">
+          <CategoryFilter counts={counts} total={days.length} names={names} active={active} />
           {hero && <DayCard hero {...cardProps(hero)} />}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {rest.map((d) => <DayCard key={d.id} {...cardProps(d)} />)}
@@ -68,6 +93,7 @@ export function DayBoard({ days, today }: { days: DayDto[]; today: string }) {
           key={editing.mode === "edit" ? editing.day.id : "new"}
           initial={editing.mode === "edit" ? editing.day : undefined}
           defaultDate={today}
+          names={names}
           onClose={() => setEditing(null)}
           onSubmit={async (input) => {
             const r =

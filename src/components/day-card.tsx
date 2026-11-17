@@ -31,7 +31,7 @@ interface Props {
 }
 
 export function DayCard({ day, hero, onEdit, onTogglePin, onDelete, busy }: Props) {
-  const c = colorStyle(day.color);
+  const c = colorStyle(day.category);
   const isToday = day.status === "today";
 
   const actions = (
@@ -52,7 +52,9 @@ export function DayCard({ day, hero, onEdit, onTogglePin, onDelete, busy }: Prop
     return (
       <article className={`rounded-3xl bg-gradient-to-br ${c.hero} p-6 text-white shadow-lg sm:p-8`}>
         <div className="flex items-start justify-between gap-2">
-          <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs">📌 {kindText(day)}</span>
+          <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs">
+            📌 {day.categoryName} · {kindText(day)}
+          </span>
           {actions}
         </div>
         <p className="mt-6 text-lg font-medium sm:text-xl">{headline(day)}</p>
@@ -76,6 +78,8 @@ export function DayCard({ day, hero, onEdit, onTogglePin, onDelete, busy }: Prop
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs text-stone-600">
           <span className={`h-2 w-2 rounded-full ${c.dot}`} />
+          <span className="font-medium text-stone-700">{day.categoryName}</span>
+          <span className="text-stone-400">·</span>
           {day.pinned && "📌 "}
           {kindText(day)}
         </span>

@@ -9,6 +9,8 @@
   - 到期正数：到期后显示「xxx 已经 N 天」
   - 重复：每 n 周 / 每 n 月 / 每 n 年，显示距下一次的天数（月末、闰日自动取当月最后一天）
 - **置顶**：置顶卡片排最前，第一个以大卡片展示
+- **类别**：7 个固定类别（纪念日 / 生日 / 节日 / 生活 / 工作 / 学习 / 其他），类别决定卡片颜色；可在「设置」里给类别改名（1–10 字，留空恢复默认，仅对自己生效）
+- **按类别过滤**：首页单选标签栏（「全部」+ 有条目的类别，带数量），过滤状态记在网址 `/?category=<key>`；置顶条目不受过滤影响，始终显示
 - **卡片式管理**：新建、编辑、置顶、删除
 - **邮箱 + 密码登录**，数据按用户隔离，天数按用户时区计算
 - **开放 API**：`/api/v1/days`，API Key 鉴权（read / write），OpenAPI 文档 `/api/v1/openapi.json`
@@ -47,6 +49,12 @@ bash scripts/deploy.sh
 ## 接入
 
 在「设置」页创建 API Key（只显示一次）。
+
+Day 的类别字段：
+
+- 输出：`category`（类别 key：`rose` 纪念日 · `orange` 生日 · `amber` 节日 · `emerald` 生活 · `sky` 工作 · `violet` 学习 · `slate` 其他）、`categoryName`（用户当前的类别名）、`color`（已弃用，恒等于 `category`）
+- 输入：首选 `category`；仍接受旧字段 `color` 并按同名 key 映射为类别，两者都传以 `category` 为准。REST 与 MCP（`create_day` / `update_day`）一致
+- 类别名称只能在设置页修改，API 不提供读写类别名称的接口
 
 ```bash
 curl http://localhost:3000/api/v1/days -H "Authorization: Bearer ld_..."

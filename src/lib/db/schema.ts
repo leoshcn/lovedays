@@ -1,4 +1,5 @@
-import { boolean, date, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import { DAY_CATEGORIES } from "../days/categories";
 
 // ---- Better Auth core tables (field names must match Better Auth's model) ----
 
@@ -69,7 +70,9 @@ export const day = pgTable(
     repeatUnit: text("repeat_unit", { enum: ["week", "month", "year"] }),
     repeatInterval: integer("repeat_interval"),
     pinned: boolean("pinned").notNull().default(false),
-    color: text("color").notNull().default("rose"),
+    // DB column is still named `color` (historical): its value is the category key, and the
+    // card color is derived from the category. Not renamed so existing data needs no migration.
+    category: text("color", { enum: DAY_CATEGORIES }).notNull().default("rose"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -93,5 +96,20 @@ export const apiKey = pgTable(
   (t) => [index("api_key_user_idx").on(t.userId)],
 );
 
+/** User-specific category names. Only renamed categories have a row; no row = default name. */
+export const categoryLabel = pgTable(
+  "category_label",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    category: text("category", { enum: DAY_CATEGORIES }).notNull(),
+    name: text("name").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.category] })],
+);
+
 export type DayRow = typeof day.$inferSelect;
 export type ApiKeyRow = typeof apiKey.$inferSelect;
+export type CategoryLabelRow = typeof categoryLabel.$inferSelect;

@@ -8,6 +8,8 @@ const { getDb, schema } = await import("@/lib/db");
 const { todayIn, addMonths } = await import("@/lib/days/engine");
 const days = await import("./days");
 const keys = await import("./api-keys");
+const categories = await import("./categories");
+const { buildOpenApiDocument } = await import("@/lib/openapi");
 const daysRoute = await import("@/app/api/v1/days/route");
 const dayRoute = await import("@/app/api/v1/days/[id]/route");
 const mcpRoute = await import("@/app/api/mcp/route");
@@ -156,6 +158,133 @@ describe("REST API", () => {
   });
 });
 
+describe("REST API categories", () => {
+  const post = (body: unknown) =>
+    daysRoute.POST(
+      new Request("http://localhost/api/v1/days", {
+        method: "POST",
+        headers: { authorization: `Bearer ${writeKey}`, "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    );
+  type Dto = { id: string; category: string; categoryName: string; color: string };
+
+  it("accepts the deprecated color field as category", async () => {
+    const res = await post({ title: "旧客户端", targetDate: shift(todayIn(TZ), 3), kind: "once", color: "sky" });
+    expect(res.status).toBe(201);
+    const { data } = (await res.json()) as { data: Dto };
+    expect(data).toMatchObject({ category: "sky", color: "sky", categoryName: "工作" });
+  });
+
+  it("prefers category when both category and color are sent", async () => {
+    const res = await post({
+      title: "两者",
+      targetDate: shift(todayIn(TZ), 3),
+      kind: "once",
+      color: "sky",
+      category: "violet",
+    });
+    expect(res.status).toBe(201);
+    const { data } = (await res.json()) as { data: Dto };
+    expect(data).toMatchObject({ category: "violet", color: "violet", categoryName: "学习" });
+
+    const ctx = { params: Promise.resolve({ id: data.id }) };
+    const patched = await dayRoute.PATCH(
+      new Request(`http://localhost/api/v1/days/${data.id}`, {
+        method: "PATCH",
+        headers: { authorization: `Bearer ${writeKey}`, "content-type": "application/json" },
+        body: JSON.stringify({ color: "amber" }),
+      }),
+      ctx,
+    );
+    expect(((await patched.json()) as { data: Dto }).data).toMatchObject({ category: "amber", color: "amber" });
+  });
+
+  it("defaults to rose and returns category fields on GET", async () => {
+    const res = await post({ title: "默认", targetDate: shift(todayIn(TZ), 3), kind: "once" });
+    const { data } = (await res.json()) as { data: Dto };
+    expect(data).toMatchObject({ category: "rose", color: "rose", categoryName: "纪念日" });
+
+    const got = await dayRoute.GET(
+      new Request(`http://localhost/api/v1/days/${data.id}`, { headers: { authorization: `Bearer ${readKey}` } }),
+      { params: Promise.resolve({ id: data.id }) },
+    );
+    expect(((await got.json()) as { data: Dto }).data).toMatchObject({
+      category: "rose",
+      categoryName: "纪念日",
+      color: "rose",
+    });
+
+    const list = await daysRoute.GET(
+      new Request("http://localhost/api/v1/days", { headers: { authorization: `Bearer ${readKey}` } }),
+    );
+    const items = ((await list.json()) as { data: Dto[] }).data;
+    expect(items.length).toBeGreaterThan(0);
+    for (const d of items) {
+      expect(d.category).toBeTruthy();
+      expect(d.categoryName).toBeTruthy();
+      expect(d.color).toBe(d.category);
+    }
+  });
+
+  it("documents category and marks color deprecated in OpenAPI", () => {
+    const doc = buildOpenApiDocument();
+    const s = doc.components.schemas as Record<string, any>;
+    expect(s.Day.properties.category.enum).toContain("violet");
+    expect(s.Day.properties.categoryName.type).toBe("string");
+    expect(s.Day.properties.color.deprecated).toBe(true);
+    expect(s.CreateDay.properties.category).toBeDefined();
+    expect(s.CreateDay.properties.color.deprecated).toBe(true);
+    expect(s.UpdateDay.properties.color.deprecated).toBe(true);
+  });
+
+  it("rejects an unknown category", async () => {
+    const res = await post({ title: "x", targetDate: shift(todayIn(TZ), 3), kind: "once", category: "pink" });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("category names", () => {
+  it("renames, resets and isolates per user", async () => {
+    const d = await days.createDay(USER, { title: "项目", targetDate: shift(todayIn(TZ), 20), kind: "countup", category: "sky" });
+    expect(d.categoryName).toBe("工作");
+
+    const names = await categories.setCategoryName(USER, "sky", "  上班  ");
+    expect(names.sky).toBe("上班");
+    expect((await days.getDay(USER, d.id)).categoryName).toBe("上班");
+    expect((await days.listDays(USER)).find((x) => x.id === d.id)?.categoryName).toBe("上班");
+
+    // Other users keep the default name
+    expect((await categories.getCategoryNames(OTHER)).sky).toBe("工作");
+    const o = await days.createDay(OTHER, { title: "别人", targetDate: shift(todayIn(TZ), 20), kind: "countup", category: "sky" });
+    expect(o.categoryName).toBe("工作");
+
+    // Rename again (upsert)
+    expect((await categories.setCategoryName(USER, "sky", "打工")).sky).toBe("打工");
+
+    // Blank resets to default
+    expect((await categories.setCategoryName(USER, "sky", "   ")).sky).toBe("工作");
+    await categories.setCategoryName(USER, "sky", "上班");
+    expect((await categories.setCategoryName(USER, "sky", null)).sky).toBe("工作");
+    expect((await days.getDay(USER, d.id)).categoryName).toBe("工作");
+
+    // Saving the default name stores no override
+    expect((await categories.setCategoryName(USER, "sky", " 工作 ")).sky).toBe("工作");
+
+    const db = await getDb();
+    expect(await db.select().from(schema.categoryLabel)).toEqual([]);
+  });
+
+  it("rejects names longer than 10 characters and unknown categories", async () => {
+    await expect(categories.setCategoryName(USER, "sky", "一二三四五六七八九十一")).rejects.toMatchObject({
+      name: "ZodError",
+    });
+    expect((await categories.setCategoryName(USER, "sky", "一二三四五六七八九十")).sky).toBe("一二三四五六七八九十");
+    await expect(categories.setCategoryName(USER, "pink" as never, "x")).rejects.toMatchObject({ name: "ZodError" });
+    await categories.setCategoryName(USER, "sky", null);
+  });
+});
+
 describe("MCP endpoint", () => {
   async function rpc(key: string, method: string, params: unknown = {}) {
     const res = await mcpRoute.POST(
@@ -188,6 +317,23 @@ describe("MCP endpoint", () => {
     expect(created.body.result.isError).toBeFalsy();
     const listed = await rpc(writeKey, "tools/call", { name: "list_days", arguments: {} });
     expect(listed.body.result.content[0].text).toContain("距离 MCP 还有 10 天");
+  });
+
+  it("accepts category in create_day and update_day", async () => {
+    const created = await rpc(writeKey, "tools/call", {
+      name: "create_day",
+      arguments: { title: "MCP 生日", targetDate: shift(todayIn(TZ), 7), kind: "countup", category: "orange" },
+    });
+    expect(created.body.result.isError).toBeFalsy();
+    const day = JSON.parse(created.body.result.content[0].text);
+    expect(day).toMatchObject({ category: "orange", categoryName: "生日", color: "orange" });
+
+    const updated = await rpc(writeKey, "tools/call", {
+      name: "update_day",
+      arguments: { id: day.id, category: "emerald" },
+    });
+    expect(updated.body.result.isError).toBeFalsy();
+    expect(JSON.parse(updated.body.result.content[0].text)).toMatchObject({ category: "emerald", categoryName: "生活" });
   });
 
   it("returns a tool error for writes with a read key", async () => {

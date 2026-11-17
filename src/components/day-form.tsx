@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { DAY_CATEGORIES, DEFAULT_CATEGORY, type CategoryNames, type DayCategory } from "@/lib/days/categories";
 import type { DayKind, RepeatUnit } from "@/lib/days/engine";
-import { DAY_COLORS, type CreateDayInput, type DayColor } from "@/lib/days/schemas";
+import type { CreateDayInput } from "@/lib/days/schemas";
 import type { DayDto } from "@/lib/services/days";
 import { COLOR_STYLES } from "./colors";
 
@@ -15,11 +16,13 @@ const KINDS: { value: DayKind; label: string; hint: string }[] = [
 interface Props {
   initial?: DayDto;
   defaultDate: string;
+  /** The user's category names */
+  names: CategoryNames;
   onSubmit: (input: CreateDayInput) => Promise<string | null>;
   onClose: () => void;
 }
 
-export function DayForm({ initial, defaultDate, onSubmit, onClose }: Props) {
+export function DayForm({ initial, defaultDate, names, onSubmit, onClose }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [targetDate, setTargetDate] = useState(initial?.targetDate ?? defaultDate);
   const [kind, setKind] = useState<DayKind>(initial?.kind ?? "once");
@@ -27,7 +30,7 @@ export function DayForm({ initial, defaultDate, onSubmit, onClose }: Props) {
   const [repeatInterval, setRepeatInterval] = useState(initial?.repeatInterval ?? 1);
   const [note, setNote] = useState(initial?.note ?? "");
   const [pinned, setPinned] = useState(initial?.pinned ?? false);
-  const [color, setColor] = useState<DayColor>((initial?.color as DayColor) ?? "rose");
+  const [category, setCategory] = useState<DayCategory>(initial?.category ?? DEFAULT_CATEGORY);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -43,7 +46,7 @@ export function DayForm({ initial, defaultDate, onSubmit, onClose }: Props) {
       repeatInterval: kind === "repeat" ? repeatInterval : null,
       note: note.trim() || null,
       pinned,
-      color,
+      category,
     });
     setPending(false);
     if (err) setError(err);
@@ -114,20 +117,26 @@ export function DayForm({ initial, defaultDate, onSubmit, onClose }: Props) {
           <textarea className={`${input} mt-1`} rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} />
         </label>
 
-        <div className="mt-4">
-          <span className="text-sm text-stone-600">颜色</span>
-          <div className="mt-1 flex gap-2">
-            {DAY_COLORS.map((c) => (
+        <fieldset className="mt-4">
+          <legend className="text-sm text-stone-600">类别</legend>
+          <div className="mt-1 flex flex-wrap gap-2" role="radiogroup" aria-label="类别">
+            {DAY_CATEGORIES.map((c) => (
               <button
                 key={c}
                 type="button"
-                aria-label={COLOR_STYLES[c].label}
-                onClick={() => setColor(c)}
-                className={`h-7 w-7 rounded-full ${COLOR_STYLES[c].dot} ${color === c ? "ring-2 ring-stone-900 ring-offset-2" : ""}`}
-              />
+                role="radio"
+                aria-checked={category === c}
+                onClick={() => setCategory(c)}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm ${
+                  category === c ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 text-stone-700"
+                }`}
+              >
+                <span className={`h-2.5 w-2.5 rounded-full ${COLOR_STYLES[c].dot}`} />
+                {names[c]}
+              </button>
             ))}
           </div>
-        </div>
+        </fieldset>
 
         <label className="mt-4 flex items-center gap-2 text-sm">
           <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} />

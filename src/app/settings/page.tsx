@@ -1,14 +1,16 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { ApiKeyManager } from "@/components/api-key-manager";
+import { CategoryNameEditor } from "@/components/category-name-editor";
 import { requireUser } from "@/lib/auth/session";
 import { listApiKeys } from "@/lib/services/api-keys";
+import { getCategoryNames } from "@/lib/services/categories";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const keys = await listApiKeys(user.id);
+  const [keys, names] = await Promise.all([listApiKeys(user.id), getCategoryNames(user.id)]);
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host") ?? "localhost:3000"}`;
 
@@ -24,6 +26,14 @@ export default async function SettingsPage() {
       <section className="rounded-3xl bg-white p-6 shadow-sm">
         <h2 className="font-semibold">账号</h2>
         <p className="mt-1 text-sm text-stone-600">{user.email}</p>
+      </section>
+
+      <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm">
+        <h2 className="font-semibold">类别</h2>
+        <p className="mt-1 text-sm text-stone-600">
+          每个类别对应固定的卡片颜色。可以改名（1–10 个字），留空恢复默认名称。
+        </p>
+        <CategoryNameEditor names={names} />
       </section>
 
       <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm">

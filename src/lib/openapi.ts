@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { DAY_KINDS, REPEAT_UNITS } from "@/lib/days/engine";
-import { createDaySchema, DAY_COLORS, updateDaySchema } from "@/lib/days/schemas";
+import { DAY_CATEGORIES, DEFAULT_CATEGORY_NAMES } from "@/lib/days/categories";
+import { createDaySchema, updateDaySchema } from "@/lib/days/schemas";
+
+const defaultNames = DAY_CATEGORIES.map((c) => `${c}=${DEFAULT_CATEGORY_NAMES[c]}`).join(", ");
 
 const dayDto = {
   type: "object",
@@ -13,7 +16,18 @@ const dayDto = {
     repeatUnit: { type: ["string", "null"], enum: [...REPEAT_UNITS, null] },
     repeatInterval: { type: ["integer", "null"] },
     pinned: { type: "boolean" },
-    color: { type: "string", enum: [...DAY_COLORS] },
+    category: {
+      type: "string",
+      enum: [...DAY_CATEGORIES],
+      description: `Category key; determines the card color. Default names: ${defaultNames}`,
+    },
+    categoryName: { type: "string", description: "The user's display name for the category (users may rename categories)" },
+    color: {
+      type: "string",
+      enum: [...DAY_CATEGORIES],
+      deprecated: true,
+      description: "Deprecated: always equals category. Use category instead.",
+    },
     status: {
       type: "string",
       enum: ["upcoming", "today", "elapsed"],
