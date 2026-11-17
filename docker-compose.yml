@@ -18,6 +18,7 @@ services:
       DATABASE_URL: postgres://lovedays:${POSTGRES_PASSWORD}@db:5432/lovedays
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
     ports:
       - "${APP_PORT:-3060}:3000"
     mem_limit: 512m
