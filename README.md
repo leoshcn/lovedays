@@ -66,12 +66,12 @@ claude mcp add --transport http lovedays http://localhost:3000/api/mcp \
 
 ### iOS 小组件（API Widget）
 
-[API Widget](https://apiwidget.com/docs) 不能发送自定义请求头，所以提供专用端点 `GET /api/v1/widget/w12`，直接返回 W12 模板的行数组（最多 12 行，每个字段最多 24 字）。这个端点允许把**只读** Key 放在 URL 里（`?key=ld_...`）；写权限 Key 放在 URL 里会返回 403，其他 REST 端点仍然只接受请求头。
+[API Widget](https://apiwidget.com/docs) 不能发送自定义请求头，所以提供专用端点 `GET /api/v1/widget/w12`，直接返回 W12 模板的行数组（最多 12 行，每个字段最多 24 字）。这个端点允许把**只读** Key 放在 URL 里：路径形式 `/api/v1/widget/w12/ld_...`，或查询参数形式 `?key=ld_...`。写权限 Key 放在 URL 里会返回 403，其他 REST 端点仍然只接受请求头。
 
-在 App 中填入的 API Widget Key（主题可选 `dark` / `light` / `terminal` / `norton`）：
+API Widget App 会丢掉 URL 里的查询参数（`?` 之后的部分），所以在 App 中必须用**路径形式**。填入的 API Widget Key（主题可选 `dark` / `light` / `terminal` / `norton`）：
 
 ```
-v1::w12::dark::json::https://你的域名/api/v1/widget/w12?key=ld_只读Key
+v1::w12::dark::json::https://你的域名/api/v1/widget/w12/ld_只读Key
 ```
 
 端点必须通过公网 HTTPS 访问。颜色规则：今天为 `success`，7 天内为 `warning`，置顶为 `main`。

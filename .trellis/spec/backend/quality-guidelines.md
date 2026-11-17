@@ -13,7 +13,7 @@
 - `once` days: reject past `targetDate`; purge expired ones lazily at the start of every read (`purgeExpired`). No cron.
 - Single pin: at most one pinned day per user. Enforced in `createDay`/`updateDay` (`unpinOthers` in the same `db.transaction`), so web, REST and MCP all obey it — never enforce it only in the UI.
 - API keys: store only SHA-256 hash; plaintext returned once. Write endpoints/tools must call `requireWrite(p)`.
-- Key in URL (`authenticateRequest(req, { allowQueryKey: true })`): only for header-less clients (iOS widget `/api/v1/widget/w12`), read keys only (write key → 403). Never enable it on CRUD routes.
+- Key in URL (`authenticateRequest(req, { urlKey })`): only for header-less clients (iOS widget `/api/v1/widget/w12/<key>`; the API Widget app strips query strings, so the path form is required there), read keys only (write key → 403). Never enable it on CRUD routes.
 
 ## Forbidden
 - Local-time `Date` arithmetic for calendar dates (use `toEpochDay`/`addMonths` in engine).

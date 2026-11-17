@@ -14,6 +14,7 @@ const daysRoute = await import("@/app/api/v1/days/route");
 const dayRoute = await import("@/app/api/v1/days/[id]/route");
 const mcpRoute = await import("@/app/api/mcp/route");
 const widgetRoute = await import("@/app/api/v1/widget/w12/route");
+const widgetKeyRoute = await import("@/app/api/v1/widget/w12/[key]/route");
 
 const TZ = "Asia/Shanghai";
 const USER = "user-1";
@@ -195,6 +196,19 @@ describe("W12 widget endpoint", () => {
       new Request("http://localhost/api/v1/widget/w12", { headers: { authorization: `Bearer ${writeKey}` } }),
     );
     expect(ok.status).toBe(200);
+  });
+
+  it("accepts a read key as a path segment (API Widget drops query strings)", async () => {
+    const at = (key: string) =>
+      widgetKeyRoute.GET(new Request(`http://localhost/api/v1/widget/w12/${key}`), {
+        params: Promise.resolve({ key }),
+      });
+    const ok = await at(readKey);
+    expect(ok.status).toBe(200);
+    expect(Array.isArray(await ok.json())).toBe(true);
+    expect((await at(writeKey)).status).toBe(403);
+    expect((await at("ld_nope")).status).toBe(401);
+    expect((await at("nope")).status).toBe(401);
   });
 
   it("requires a valid key", async () => {

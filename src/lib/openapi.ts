@@ -128,7 +128,7 @@ export function buildOpenApiDocument() {
           description:
             "Returns a top-level array of `{ key, value?, color? }` rows (https://apiwidget.com/docs/w12). " +
             "Besides the Bearer header, a **read-only** key may be passed as `?key=ld_...` for clients that cannot set headers; " +
-            "a write key in the URL is rejected with 403.",
+            "a write key in the URL is rejected with 403. The iOS API Widget app strips query strings, so it must use `/widget/w12/{key}`.",
           security: [{ apiKey: [] }, { queryKey: [] }],
           responses: {
             "200": {
