@@ -25,6 +25,7 @@ const FG = Color.dynamic(new Color("#111827"), new Color("#f3f4f6"));
 const SUB = Color.dynamic(new Color("#6b7280"), new Color("#9ca3af"));
 
 const ROWS = { medium: 3, large: 7, extraLarge: 7 };
+const SMALL_ROWS = 4;
 
 class AuthError extends Error {}
 
@@ -129,29 +130,18 @@ function addHeader(w, stale) {
   if (stale) text(h, "离线", Font.systemFont(11), SUB);
 }
 
-function renderSmall(w, d, stale) {
-  const color = catColor(d.category);
-  const top = w.addStack();
-  top.layoutHorizontally();
-  text(top, d.categoryName || "", Font.semiboldSystemFont(12), color);
-  top.addSpacer();
-  if (stale) text(top, "离线", Font.systemFont(10), SUB);
-
-  w.addSpacer(4);
-  text(w, d.title, Font.boldSystemFont(16), FG, 2).minimumScaleFactor = 0.7;
-  w.addSpacer();
-
-  if (d.status === "today") {
-    text(w, "就是今天", Font.heavySystemFont(30), color).minimumScaleFactor = 0.6;
-  } else {
-    text(w, d.status === "upcoming" ? "还有" : "已经", Font.systemFont(12), SUB);
-    const n = w.addStack();
-    n.layoutHorizontally();
-    n.bottomAlignContent();
-    text(n, String(d.days), Font.heavyRoundedSystemFont(40), color).minimumScaleFactor = 0.5;
-    text(n, " 天", Font.semiboldSystemFont(14), SUB);
-  }
-  text(w, d.displayDate, Font.systemFont(11), SUB);
+/** 小号：前 4 项（列表已是置顶在前、其余按日期排序），每行只有名称和天数数字。 */
+function renderSmall(w, days) {
+  days.slice(0, SMALL_ROWS).forEach((d, i) => {
+    if (i > 0) w.addSpacer();
+    const row = w.addStack();
+    row.layoutHorizontally();
+    row.centerAlignContent();
+    const title = text(row, d.title, Font.mediumSystemFont(14), FG);
+    title.minimumScaleFactor = 0.75;
+    row.addSpacer(6);
+    text(row, String(d.days), Font.boldRoundedSystemFont(17), catColor(d.category));
+  });
 }
 
 function renderList(w, days, family, stale) {
@@ -214,7 +204,7 @@ async function buildWidget(family) {
     const { days, stale } = await loadDays(server, key);
     if (days.length === 0) message(w, "还没有倒数日", family);
     else if (accessory) renderAccessory(w, days[0], family);
-    else if (family === "small") renderSmall(w, days[0], stale);
+    else if (family === "small") renderSmall(w, days);
     else renderList(w, days, family, stale);
   } catch (e) {
     message(w, `出错了：${e.message}`, family);
