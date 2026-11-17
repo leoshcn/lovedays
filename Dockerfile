@@ -14,8 +14,8 @@ RUN pnpm install --frozen-lockfile
 # ---- build ----
 FROM deps AS build
 COPY . .
-# Build never touches the real database or secret.
-ENV PGLITE_DIR=memory:// \
+# Build never touches a real database (postgres-js connects lazily) or the real secret.
+ENV DATABASE_URL=postgres://build:build@127.0.0.1:5432/build \
     BETTER_AUTH_SECRET=build-time-placeholder-not-used-at-runtime \
     NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build

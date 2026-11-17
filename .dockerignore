@@ -1,5 +1,4 @@
 node_modules
-.next
 .data
 .git
 .env
@@ -9,3 +8,4 @@ node_modules
 .claude
 .trellis
 coverage
+.next/cache
