@@ -53,3 +53,25 @@
 
 - 教训：首次在共享部署机上无限制构建导致整机卡死，需人工重启；之后只用 scripts/deploy.sh（3g 内存上限，2g 会 OOM）
 - 待做：找回密码/邮箱验证（需邮件服务）、农历、提醒推送
+
+
+## Session 2: 倒数日类别字段与首页过滤
+
+**Date**: 2026-11-17
+**Task**: 倒数日类别字段与首页过滤
+**Branch**: `main`
+
+### Summary
+
+新增 7 个固定类别（与颜色 1:1，用户可改名，category_label 表）；首页单选过滤 ?category=，置顶不受影响；REST/MCP 新增 category/categoryName，color 保留为 deprecated 别名；已部署到部署机并验收；spec 记录列名映射、API 兼容、URL 过滤状态约定
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a72f68d` | (see git log) |
+| `41d911b` | (see git log) |
+
+### Status
+
+[OK] **Completed**
