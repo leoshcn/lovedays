@@ -78,7 +78,10 @@ export function buildOpenApiDocument() {
     servers: [{ url: "/api/v1" }],
     security: [{ apiKey: [] }],
     components: {
-      securitySchemes: { apiKey: { type: "http", scheme: "bearer", description: "LoveDays API key (ld_...)" } },
+      securitySchemes: {
+        apiKey: { type: "http", scheme: "bearer", description: "LoveDays API key (ld_...)" },
+        queryKey: { type: "apiKey", in: "query", name: "key", description: "Read-only key in the URL (widget endpoint only)" },
+      },
       schemas: {
         Day: dayDto,
         CreateDay: z.toJSONSchema(createDaySchema, { io: "input" }),
@@ -116,6 +119,40 @@ export function buildOpenApiDocument() {
             "400": { description: "Validation error", ...errRef },
             "401": { description: "Unauthorized", ...errRef },
             "403": { description: "Read-only key", ...errRef },
+          },
+        },
+      },
+      "/widget/w12": {
+        get: {
+          summary: "Days as an iOS API Widget W12 row array (max 12 rows)",
+          description:
+            "Returns a top-level array of `{ key, value?, color? }` rows (https://apiwidget.com/docs/w12). " +
+            "Besides the Bearer header, a **read-only** key may be passed as `?key=ld_...` for clients that cannot set headers; " +
+            "a write key in the URL is rejected with 403.",
+          security: [{ apiKey: [] }, { queryKey: [] }],
+          responses: {
+            "200": {
+              description: "W12 rows",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "array",
+                    maxItems: 12,
+                    items: {
+                      type: "object",
+                      required: ["key"],
+                      properties: {
+                        key: { type: "string", maxLength: 24 },
+                        value: { type: "string", maxLength: 24 },
+                        color: { type: "string", enum: ["main", "muted", "info", "success", "warning", "danger"] },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { description: "Unauthorized", ...errRef },
+            "403": { description: "Write key passed in the URL", ...errRef },
           },
         },
       },

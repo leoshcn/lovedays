@@ -85,17 +85,39 @@ export async function revokeApiKey(userId: string, id: string): Promise<void> {
   if (rows.length === 0) throw new AppError("not_found", "API key not found");
 }
 
-/** Resolve `Authorization: Bearer ld_...` into a principal. Throws 401 on failure. */
-export async function authenticateRequest(req: Request): Promise<ApiPrincipal> {
+export interface AuthOptions {
+  /**
+   * Also accept the key as a `?key=ld_...` query parameter, for clients that cannot send
+   * headers (e.g. iOS API Widget). URLs end up in logs and history, so only **read** keys
+   * are accepted this way; a write key in the URL is rejected with 403.
+   */
+  allowQueryKey?: boolean;
+}
+
+/**
+ * Resolve `Authorization: Bearer ld_...` (or, when allowed, `?key=ld_...`) into a principal.
+ * Throws 401 on failure.
+ */
+export async function authenticateRequest(req: Request, opts: AuthOptions = {}): Promise<ApiPrincipal> {
   const header = req.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(\S+)$/i.exec(header);
-  const key = match?.[1];
+  const queryKey = opts.allowQueryKey ? new URL(req.url).searchParams.get("key") : null;
+  const fromQuery = !match && !!queryKey;
+  const key = match?.[1] ?? queryKey ?? undefined;
   if (!key || !key.startsWith(KEY_PREFIX)) {
-    throw new AppError("unauthorized", "Missing or malformed API key. Use 'Authorization: Bearer ld_...'");
+    throw new AppError(
+      "unauthorized",
+      opts.allowQueryKey
+        ? "Missing or malformed API key. Use 'Authorization: Bearer ld_...' or '?key=ld_...' (read keys only)"
+        : "Missing or malformed API key. Use 'Authorization: Bearer ld_...'",
+    );
   }
   const db = await getDb();
   const [row] = await db.select().from(apiKey).where(eq(apiKey.keyHash, hashKey(key)));
   if (!row) throw new AppError("unauthorized", "Invalid API key");
+  if (fromQuery && row.scope !== "read") {
+    throw new AppError("forbidden", "Only read-only API keys may be passed in the URL; create a read key in Settings");
+  }
   await db.update(apiKey).set({ lastUsedAt: new Date() }).where(eq(apiKey.id, row.id));
   return { userId: row.userId, scope: row.scope, keyId: row.id };
 }
