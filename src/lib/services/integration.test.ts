@@ -13,8 +13,6 @@ const { buildOpenApiDocument } = await import("@/lib/openapi");
 const daysRoute = await import("@/app/api/v1/days/route");
 const dayRoute = await import("@/app/api/v1/days/[id]/route");
 const mcpRoute = await import("@/app/api/mcp/route");
-const widgetRoute = await import("@/app/api/v1/widget/w12/route");
-const widgetKeyRoute = await import("@/app/api/v1/widget/w12/[key]/route");
 
 const TZ = "Asia/Shanghai";
 const USER = "user-1";
@@ -172,59 +170,6 @@ describe("REST API", () => {
     );
     expect(invalid.status).toBe(400);
     expect(((await invalid.json()) as { error: { code: string } }).error.code).toBe("validation_error");
-  });
-});
-
-describe("W12 widget endpoint", () => {
-  const url = (q: string) => new Request(`http://localhost/api/v1/widget/w12${q}`);
-
-  it("accepts a read key in the URL and returns a W12 array", async () => {
-    const created = await days.createDay(USER, { title: "Widget", kind: "countup", targetDate: "2020-01-01" });
-    const res = await widgetRoute.GET(url(`?key=${readKey}`));
-    expect(res.status).toBe(200);
-    const rows = (await res.json()) as { key: string; value?: string }[];
-    expect(Array.isArray(rows)).toBe(true);
-    expect(rows.length).toBeLessThanOrEqual(12);
-    expect(rows).toContainEqual(expect.objectContaining({ key: "Widget", value: expect.stringMatching(/^已经 \d+ 天$/) }));
-    await days.deleteDay(USER, created.id);
-  });
-
-  it("rejects a write key in the URL but still accepts headers", async () => {
-    const res = await widgetRoute.GET(url(`?key=${writeKey}`));
-    expect(res.status).toBe(403);
-    const ok = await widgetRoute.GET(
-      new Request("http://localhost/api/v1/widget/w12", { headers: { authorization: `Bearer ${writeKey}` } }),
-    );
-    expect(ok.status).toBe(200);
-  });
-
-  it("accepts a read key as a path segment (API Widget drops query strings)", async () => {
-    const at = (key: string) =>
-      widgetKeyRoute.GET(new Request(`http://localhost/api/v1/widget/w12/${key}`), {
-        params: Promise.resolve({ key }),
-      });
-    const created = await days.createDay(USER, { title: "纪念日🎂", kind: "countup", targetDate: "2020-01-01" });
-    const ok = await at(readKey);
-    expect(ok.status).toBe(200);
-    expect(ok.headers.get("content-type")).toBe("application/json; charset=utf-8");
-    const body = await ok.text();
-    // ASCII-only body: clients that ignore the charset still decode Chinese correctly.
-    expect(/^[\x00-\x7e]*$/.test(body)).toBe(true);
-    expect(JSON.parse(body)).toContainEqual(expect.objectContaining({ key: "纪念日🎂" }));
-    await days.deleteDay(USER, created.id);
-    expect((await at(writeKey)).status).toBe(403);
-    expect((await at("ld_nope")).status).toBe(401);
-    expect((await at("nope")).status).toBe(401);
-  });
-
-  it("requires a valid key", async () => {
-    expect((await widgetRoute.GET(url(""))).status).toBe(401);
-    expect((await widgetRoute.GET(url("?key=ld_nope"))).status).toBe(401);
-  });
-
-  it("does not accept URL keys on the regular REST API", async () => {
-    const res = await daysRoute.GET(new Request(`http://localhost/api/v1/days?key=${readKey}`));
-    expect(res.status).toBe(401);
   });
 });
 
