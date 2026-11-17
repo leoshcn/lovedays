@@ -13,7 +13,7 @@ TARGET="${1:-root@your-server}"
 REMOTE_DIR="${2:-/opt/lovedays}"
 REV="$(git rev-parse --short HEAD)"
 ARCHIVE="lovedays-${REV}.tar.gz"
-BUILD_MEMORY="${BUILD_MEMORY:-2g}"
+BUILD_MEMORY="${BUILD_MEMORY:-3g}"
 BUILD_CPUS="${BUILD_CPUS:-2}"
 
 git archive --format=tar.gz -o "$ARCHIVE" HEAD
@@ -47,7 +47,7 @@ docker run --rm \
   -v lovedays-pnpm-store:/pnpm-store \
   -e npm_config_registry="${NPM_REGISTRY:-https://registry.npmjs.org/}" \
   -e npm_config_store_dir=/pnpm-store \
-  -e NODE_OPTIONS=--max-old-space-size=1280 \
+  -e NODE_OPTIONS=--max-old-space-size=2048 \
   -e NEXT_BUILD_CPUS=1 \
   -e NEXT_TELEMETRY_DISABLED=1 \
   -e DATABASE_URL=postgres://build:build@127.0.0.1:5432/build \
