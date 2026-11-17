@@ -31,14 +31,15 @@ export function CategoryFilter({ counts, total, names, active }: Props) {
 
   const chip = (selected: boolean) =>
     `flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors ${
-      selected ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 bg-white text-stone-700 hover:border-stone-500"
+      selected ? "border-accent bg-accent text-accent-fg" : "border-border bg-surface text-muted hover:border-ring hover:text-fg"
     }`;
 
   return (
     <div
       role="radiogroup"
       aria-label="按类别过滤"
-      className={`flex gap-2 overflow-x-auto pb-1 ${pending ? "opacity-60" : ""}`}
+      // Padding (offset by negative margin) keeps chip focus rings from being clipped by the scroller.
+      className={`-mx-1 -mt-1 flex gap-2 overflow-x-auto px-1 pt-1 pb-1.5 transition-opacity ${pending ? "opacity-60" : ""}`}
     >
       <button type="button" role="radio" aria-checked={active === null} onClick={() => select(null)} className={chip(active === null)}>
         全部 <span className="tabular-nums opacity-70">{total}</span>

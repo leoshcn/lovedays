@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { X } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DAY_CATEGORIES, DEFAULT_CATEGORY, type CategoryNames, type DayCategory } from "@/lib/days/categories";
 import type { DayKind, RepeatUnit } from "@/lib/days/engine";
 import type { CreateDayInput } from "@/lib/days/schemas";
 import type { DayDto } from "@/lib/services/days";
 import { COLOR_STYLES } from "./colors";
+import { BUTTON_GHOST, BUTTON_PRIMARY, ERROR_BANNER, FIELD } from "./styles";
 
 const KINDS: { value: DayKind; label: string; hint: string }[] = [
   { value: "once", label: "一次性", hint: "到期后自动删除" },
@@ -24,9 +26,10 @@ interface Props {
   onClose: () => void;
 }
 
-// Base field style has no width so callers can size it without conflicting utilities.
-const FIELD = "rounded-lg border border-stone-300 bg-white px-3 py-2 outline-none focus:border-stone-500";
-const LABEL = "text-sm text-stone-600";
+// FIELD (styles.ts) has no width so callers can size it without conflicting utilities.
+const LABEL = "text-sm text-muted";
+/** Fallback in case animationend never fires (e.g. animations disabled by the browser). */
+const EXIT_FALLBACK_MS = 400;
 
 export function DayForm({ initial, defaultDate, names, onSubmit, onDelete, onClose }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -39,14 +42,67 @@ export function DayForm({ initial, defaultDate, names, onSubmit, onDelete, onClo
   const [category, setCategory] = useState<DayCategory>(initial?.category ?? DEFAULT_CATEGORY);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  // Exit animation: `close()` plays it, then `finish()` calls onClose exactly once
+  // (whichever comes first: animationend or the fallback timer; reduced motion = immediately).
+  const onCloseRef = useRef(onClose);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
+  const finished = useRef(false);
+  const closingRef = useRef(false);
+  const fallbackTimer = useRef<number | undefined>(undefined);
+  const finish = useCallback(() => {
+    if (finished.current) return;
+    finished.current = true;
+    window.clearTimeout(fallbackTimer.current);
+    onCloseRef.current();
+  }, []);
+  const close = useCallback(() => {
+    if (closingRef.current || finished.current) return;
+    closingRef.current = true;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      finish();
+      return;
+    }
+    setClosing(true);
+    fallbackTimer.current = window.setTimeout(finish, EXIT_FALLBACK_MS);
+  }, [finish]);
+
+  // Unmounted without finishing (e.g. parent swapped in another dialog during the exit animation):
+  // the pending fallback timer must not fire onClose later and close the new dialog.
+  useEffect(
+    () => () => {
+      finished.current = true;
+      window.clearTimeout(fallbackTimer.current);
+    },
+    [],
+  );
+
+  // Esc closes; background page does not scroll while open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("keydown", onKey);
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflow;
+    };
+  }, [close]);
 
   async function run(fn: () => Promise<string | null>) {
     setPending(true);
     setError(null);
     const err = await fn();
+    // Dismissed while saving: the dialog is (being) unmounted, leave its state alone.
+    if (closingRef.current) return;
     setPending(false);
     if (err) setError(err);
-    else onClose();
+    else close();
   }
 
   function submit(e: React.FormEvent) {
@@ -71,13 +127,42 @@ export function DayForm({ initial, defaultDate, names, onSubmit, onDelete, onClo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
+    <div
+      className={`fixed inset-0 z-50 flex items-end justify-center bg-overlay sm:items-center sm:p-4 ${
+        closing ? "pointer-events-none animate-fade-out" : "animate-fade-in"
+      }`}
+      onClick={close}
+    >
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[90dvh] w-full max-w-lg flex-col rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+        onAnimationEnd={(e) => {
+          if (closing && e.target === e.currentTarget) finish();
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="day-form-title"
+        className={`flex max-h-[90dvh] w-full max-w-lg flex-col rounded-t-3xl border border-line bg-surface shadow-2xl sm:rounded-3xl ${
+          closing
+            ? "motion-safe:animate-sheet-down motion-reduce:animate-fade-out sm:motion-safe:animate-pop-out"
+            : "motion-safe:animate-sheet-up motion-reduce:animate-fade-in sm:motion-safe:animate-pop-in"
+        }`}
       >
-        <h2 className="px-6 pt-6 text-lg font-semibold">{initial ? "编辑倒数日" : "新建倒数日"}</h2>
+        <div className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-border sm:hidden" aria-hidden />
+        <div className="flex items-center justify-between gap-2 px-6 pt-4 sm:pt-6">
+          <h2 id="day-form-title" className="font-display text-lg font-semibold">
+            {initial ? "编辑倒数日" : "新建倒数日"}
+          </h2>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="关闭"
+            title="关闭"
+            className={`-mr-2 inline-flex h-8 w-8 items-center justify-center rounded-full ${BUTTON_GHOST}`}
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-4">
           <label className={`block ${LABEL}`}>
@@ -100,10 +185,15 @@ export function DayForm({ initial, defaultDate, names, onSubmit, onDelete, onClo
                   key={k.value}
                   type="button"
                   onClick={() => setKind(k.value)}
-                  className={`rounded-lg border px-3 py-2 text-left text-sm ${kind === k.value ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300"}`}
+                  aria-pressed={kind === k.value}
+                  className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                    kind === k.value
+                      ? "border-accent bg-accent text-accent-fg"
+                      : "border-border text-fg hover:border-ring"
+                  }`}
                 >
                   <span className="block font-medium">{k.label}</span>
-                  <span className={`block text-xs ${kind === k.value ? "text-white/70" : "text-stone-500"}`}>{k.hint}</span>
+                  <span className={`block text-xs ${kind === k.value ? "opacity-70" : "text-subtle"}`}>{k.hint}</span>
                 </button>
               ))}
             </div>
@@ -123,7 +213,7 @@ export function DayForm({ initial, defaultDate, names, onSubmit, onDelete, onClo
           {kind === "repeat" && (
             <fieldset>
               <legend className={LABEL}>重复周期</legend>
-              <div className="mt-1 flex items-center gap-2 text-sm whitespace-nowrap text-stone-700">
+              <div className="mt-1 flex items-center gap-2 text-sm whitespace-nowrap text-fg">
                 <span className="shrink-0">每</span>
                 <input
                   type="number"
@@ -160,8 +250,10 @@ export function DayForm({ initial, defaultDate, names, onSubmit, onDelete, onClo
                   role="radio"
                   aria-checked={category === c}
                   onClick={() => setCategory(c)}
-                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm ${
-                    category === c ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 text-stone-700"
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors ${
+                    category === c
+                      ? "border-accent bg-accent text-accent-fg"
+                      : "border-border text-muted hover:border-ring hover:text-fg"
                   }`}
                 >
                   <span className={`h-2.5 w-2.5 rounded-full ${COLOR_STYLES[c].dot}`} />
@@ -183,32 +275,41 @@ export function DayForm({ initial, defaultDate, names, onSubmit, onDelete, onClo
           </label>
 
           <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" className="mt-0.5" checked={pinned} onChange={(e) => setPinned(e.target.checked)} />
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-accent"
+              checked={pinned}
+              onChange={(e) => setPinned(e.target.checked)}
+            />
             <span>
               置顶
-              <span className="block text-xs text-stone-500">只能置顶一个，会替换当前的置顶</span>
+              <span className="block text-xs text-subtle">只能置顶一个，会替换当前的置顶</span>
             </span>
           </label>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p role="alert" className={ERROR_BANNER}>
+              {error}
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 border-t border-stone-100 px-6 py-4">
+        <div className="flex items-center gap-2 border-t border-line px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {onDelete && (
             <button
               type="button"
               disabled={pending}
               onClick={remove}
-              className="rounded-lg px-3 py-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+              className="rounded-lg px-3 py-2 text-danger transition-colors hover:bg-danger-soft disabled:opacity-50"
             >
               删除
             </button>
           )}
           <div className="ml-auto flex gap-2">
-            <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-stone-600 hover:bg-stone-100">
+            <button type="button" onClick={close} className={`px-4 py-2 ${BUTTON_GHOST}`}>
               取消
             </button>
-            <button type="submit" disabled={pending} className="rounded-lg bg-stone-900 px-4 py-2 text-white disabled:opacity-50">
+            <button type="submit" disabled={pending} className={`px-4 py-2 ${BUTTON_PRIMARY}`}>
               {pending ? "保存中…" : "保存"}
             </button>
           </div>

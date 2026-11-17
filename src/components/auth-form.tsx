@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
+import { BUTTON_PRIMARY, ERROR_BANNER, FIELD, PANEL } from "./styles";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
@@ -34,18 +35,18 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     router.refresh();
   }
 
-  const input = "mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 outline-none focus:border-stone-500";
+  const input = `${FIELD} mt-1 w-full`;
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-4">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-3xl bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold">LoveDays</h1>
-        <p className="mt-1 text-sm text-stone-500">{isLogin ? "登录你的账号" : "用邮箱创建账号"}</p>
-        <label className="mt-6 block text-sm text-stone-600">
+      <form onSubmit={submit} className={`w-full max-w-sm ${PANEL} p-8`}>
+        <h1 className="font-display text-2xl font-bold tracking-tight">LoveDays</h1>
+        <p className="mt-1 text-sm text-muted">{isLogin ? "登录你的账号" : "用邮箱创建账号"}</p>
+        <label className="mt-6 block text-sm text-muted">
           邮箱
           <input type="email" className={input} value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
         </label>
-        <label className="mt-4 block text-sm text-stone-600">
+        <label className="mt-4 block text-sm text-muted">
           密码
           <input
             type="password"
@@ -57,13 +58,17 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             autoComplete={isLogin ? "current-password" : "new-password"}
           />
         </label>
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        <button type="submit" disabled={pending} className="mt-6 w-full rounded-lg bg-stone-900 py-2.5 text-white disabled:opacity-50">
+        {error && (
+          <p role="alert" className={`mt-4 ${ERROR_BANNER}`}>
+            {error}
+          </p>
+        )}
+        <button type="submit" disabled={pending} className={`mt-6 w-full py-2.5 ${BUTTON_PRIMARY}`}>
           {pending ? "请稍候…" : isLogin ? "登录" : "注册"}
         </button>
-        <p className="mt-4 text-center text-sm text-stone-500">
+        <p className="mt-4 text-center text-sm text-muted">
           {isLogin ? "还没有账号？" : "已有账号？"}
-          <Link href={isLogin ? "/register" : "/login"} className="text-stone-900 underline">
+          <Link href={isLogin ? "/register" : "/login"} className="rounded text-fg underline underline-offset-2">
             {isLogin ? "注册" : "登录"}
           </Link>
         </p>

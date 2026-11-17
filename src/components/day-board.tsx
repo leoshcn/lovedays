@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarHeart, Plus } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { createDayAction, deleteDayAction, togglePinAction, updateDayAction } from "@/app/actions";
@@ -8,6 +9,7 @@ import type { DayDto } from "@/lib/services/days";
 import { CategoryFilter } from "./category-filter";
 import { DayCard } from "./day-card";
 import { DayForm } from "./day-form";
+import { BUTTON_PRIMARY, ERROR_BANNER } from "./styles";
 
 type Editing = { mode: "create" } | { mode: "edit"; day: DayDto } | null;
 
@@ -59,15 +61,30 @@ export function DayBoard({ days, today, names, category }: Props) {
 
   return (
     <>
-      {error && <p className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
+      {error && (
+        <p role="alert" className={`mb-4 ${ERROR_BANNER}`}>
+          {error}
+        </p>
+      )}
 
       {days.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-stone-300 px-6 py-16 text-center text-stone-500">
-          <p className="text-lg">还没有倒数日</p>
-          <p className="mt-1 text-sm">记录生日、纪念日、考试、假期……</p>
+        <div className="flex flex-col items-center rounded-3xl border border-dashed border-border px-6 py-16 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-2 text-muted">
+            <CalendarHeart className="h-7 w-7" aria-hidden />
+          </span>
+          <p className="mt-4 font-display text-lg font-medium">还没有倒数日</p>
+          <p className="mt-1 text-sm text-muted">记录生日、纪念日、考试、假期……</p>
+          <button
+            type="button"
+            onClick={() => setEditing({ mode: "create" })}
+            className={`mt-6 inline-flex items-center gap-1.5 px-4 py-2 text-sm ${BUTTON_PRIMARY}`}
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            新建第一个
+          </button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className={`space-y-4 transition-opacity ${pending ? "opacity-70" : ""}`}>
           <CategoryFilter counts={counts} total={days.length} names={names} active={active} />
           {hero && <DayCard hero {...cardProps(hero)} />}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -79,10 +96,11 @@ export function DayBoard({ days, today, names, category }: Props) {
       <button
         type="button"
         onClick={() => setEditing({ mode: "create" })}
-        className="fixed right-6 bottom-6 flex h-14 w-14 items-center justify-center rounded-full bg-stone-900 text-3xl text-white shadow-lg hover:bg-stone-700"
+        className="fixed right-6 bottom-6 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-fg shadow-lg transition-[translate,scale,box-shadow,background-color] duration-200 hover:bg-accent-hover hover:shadow-xl motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-95"
         aria-label="新建倒数日"
+        title="新建倒数日"
       >
-        +
+        <Plus className="h-7 w-7" aria-hidden />
       </button>
 
       {editing && (

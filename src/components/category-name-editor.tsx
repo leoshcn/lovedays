@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useState, useTransition } from "react";
 import { setCategoryNameAction } from "@/app/actions";
 import {
@@ -9,6 +10,7 @@ import {
   type DayCategory,
 } from "@/lib/days/categories";
 import { COLOR_STYLES } from "./colors";
+import { BUTTON_PRIMARY, FIELD } from "./styles";
 
 /** Input value for a category: blank when it uses the default name. */
 const customName = (names: CategoryNames, c: DayCategory) =>
@@ -17,7 +19,7 @@ const customName = (names: CategoryNames, c: DayCategory) =>
 /** Rename the 7 fixed categories. Blank = restore the default name. Saves on blur / Enter / 保存. */
 export function CategoryNameEditor({ names }: { names: CategoryNames }) {
   return (
-    <ul className="mt-4 divide-y divide-stone-100">
+    <ul className="mt-4 divide-y divide-line">
       {DAY_CATEGORIES.map((c) => (
         <CategoryRow key={c} category={c} saved={customName(names, c)} />
       ))}
@@ -60,7 +62,7 @@ function CategoryRow({ category, saved }: { category: DayCategory; saved: string
       >
         <span className={`h-3 w-3 shrink-0 rounded-full ${COLOR_STYLES[category].dot}`} aria-hidden />
         <input
-          className="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-stone-500"
+          className={`${FIELD} min-w-0 flex-1 text-sm`}
           aria-label={`${COLOR_STYLES[category].label}色类别名称`}
           placeholder={DEFAULT_CATEGORY_NAMES[category]}
           value={value}
@@ -73,13 +75,22 @@ function CategoryRow({ category, saved }: { category: DayCategory; saved: string
         <button
           type="submit"
           disabled={!dirty || pending}
-          className="rounded-lg bg-stone-900 px-3 py-2 text-sm text-white disabled:opacity-40"
+          className={`shrink-0 whitespace-nowrap px-3 py-2 text-sm ${BUTTON_PRIMARY}`}
         >
           {pending ? "保存中…" : "保存"}
         </button>
       </form>
-      {error && <p className="mt-1 pl-6 text-sm text-red-600">{error}</p>}
-      {done && !error && <p className="mt-1 pl-6 text-xs text-stone-500">{lastSaved ? "已保存" : "已恢复默认名称"}</p>}
+      {error && (
+        <p role="alert" className="mt-1 pl-6 text-sm text-danger">
+          {error}
+        </p>
+      )}
+      {done && !error && (
+        <p className="mt-1 flex items-center gap-1 pl-6 text-xs text-subtle">
+          <Check className="h-3.5 w-3.5" aria-hidden />
+          {lastSaved ? "已保存" : "已恢复默认名称"}
+        </p>
+      )}
     </li>
   );
 }

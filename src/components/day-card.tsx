@@ -1,5 +1,6 @@
 "use client";
 
+import { PartyPopper, Pencil, Pin, PinOff } from "lucide-react";
 import type { DayDto } from "@/lib/services/days";
 import { colorStyle } from "./colors";
 
@@ -29,70 +30,84 @@ interface Props {
   busy?: boolean;
 }
 
+const LIFT =
+  "transition-[translate,scale,box-shadow] duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.98]";
+
 export function DayCard({ day, hero, onEdit, onTogglePin, busy }: Props) {
   const c = colorStyle(day.category);
   const isToday = day.status === "today";
+  const pinLabel = day.pinned ? "取消置顶" : "置顶";
+  const PinIcon = day.pinned ? PinOff : Pin;
+
+  const iconButton = `inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
+    hero ? "text-white/90 hover:bg-white/20 focus-visible:outline-white" : "text-subtle hover:bg-black/5 hover:text-fg dark:hover:bg-white/10"
+  }`;
 
   const actions = (
-    <div className={`flex gap-1 text-xs ${hero ? "text-white/90" : "text-stone-500"}`}>
-      <button type="button" disabled={busy} onClick={onTogglePin} className="rounded px-2 py-1 hover:bg-black/10">
-        {day.pinned ? "取消置顶" : "置顶"}
+    <div className="flex shrink-0 gap-0.5">
+      <button type="button" disabled={busy} onClick={onTogglePin} className={iconButton} aria-label={pinLabel} title={pinLabel}>
+        <PinIcon className="h-4 w-4" aria-hidden />
       </button>
-      <button type="button" disabled={busy} onClick={onEdit} className="rounded px-2 py-1 hover:bg-black/10">
-        编辑
+      <button type="button" disabled={busy} onClick={onEdit} className={iconButton} aria-label="编辑" title="编辑">
+        <Pencil className="h-4 w-4" aria-hidden />
       </button>
     </div>
   );
 
   if (hero) {
     return (
-      <article className={`rounded-3xl bg-gradient-to-br ${c.hero} p-6 text-white shadow-lg sm:p-8`}>
+      <article className={`rounded-3xl bg-gradient-to-br ${c.hero} p-6 text-white shadow-lg hover:shadow-xl sm:p-8 ${LIFT}`}>
         <div className="flex items-start justify-between gap-2">
-          <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs">
-            📌 {day.categoryName} · {kindText(day)}
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-xs">
+            <Pin className="h-3.5 w-3.5" role="img" aria-label="已置顶" />
+            {day.categoryName} · {kindText(day)}
           </span>
           {actions}
         </div>
         <p className="mt-6 text-lg font-medium sm:text-xl">{headline(day)}</p>
-        {!isToday && (
+        {isToday ? (
+          <p className="mt-3">
+            <PartyPopper className="h-12 w-12 sm:h-14 sm:w-14" role="img" aria-label="今天" />
+          </p>
+        ) : (
           <p className="mt-2 flex items-baseline gap-2">
-            <span className="text-6xl font-bold tabular-nums sm:text-7xl">{day.days}</span>
+            <span className="font-display text-6xl font-semibold tracking-tight tabular-nums sm:text-7xl">{day.days}</span>
             <span className="text-xl">天</span>
           </p>
         )}
-        <p className="mt-4 text-sm text-white/80">
+        <p className="mt-4 text-sm text-white/85">
           {day.kind === "repeat" ? "下次 " : ""}
           {day.displayDate}
         </p>
-        {day.note && <p className="mt-2 text-sm text-white/80">{day.note}</p>}
+        {day.note && <p className="mt-2 text-sm text-white/85">{day.note}</p>}
       </article>
     );
   }
 
   return (
-    <article className={`flex flex-col rounded-2xl border p-4 shadow-sm ${c.card}`}>
+    <article className={`flex flex-col rounded-2xl border p-4 shadow-sm hover:shadow-md ${c.card} ${LIFT}`}>
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-xs text-stone-600">
-          <span className={`h-2 w-2 rounded-full ${c.dot}`} />
-          <span className="font-medium text-stone-700">{day.categoryName}</span>
-          <span className="text-stone-400">·</span>
-          {day.pinned && "📌 "}
+        <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${c.dot}`} />
+          <span className="font-medium text-fg">{day.categoryName}</span>
+          <span className="text-subtle">·</span>
+          {day.pinned && <Pin className="h-3 w-3 shrink-0" role="img" aria-label="已置顶" />}
           {kindText(day)}
         </span>
-        <span className="text-xs text-stone-500">{day.displayDate}</span>
+        <span className="shrink-0 text-xs text-subtle">{day.displayDate}</span>
       </div>
       <p className="mt-3 line-clamp-2 font-medium">{headline(day)}</p>
       <p className="mt-1 flex items-baseline gap-1">
         {isToday ? (
-          <span className="text-3xl font-bold">🎉</span>
+          <PartyPopper className="my-1 h-9 w-9 text-fg" role="img" aria-label="今天" />
         ) : (
           <>
-            <span className="text-4xl font-bold tabular-nums">{day.days}</span>
-            <span className="text-stone-600">天</span>
+            <span className="font-display text-4xl font-semibold tracking-tight tabular-nums">{day.days}</span>
+            <span className="text-muted">天</span>
           </>
         )}
       </p>
-      {day.note && <p className="mt-2 line-clamp-2 text-sm text-stone-600">{day.note}</p>}
+      {day.note && <p className="mt-2 line-clamp-2 text-sm text-muted">{day.note}</p>}
       <div className="mt-auto flex justify-end pt-3">{actions}</div>
     </article>
   );

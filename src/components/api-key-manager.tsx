@@ -1,8 +1,10 @@
 "use client";
 
+import { Copy } from "lucide-react";
 import { useState, useTransition } from "react";
 import { createApiKeyAction, revokeApiKeyAction } from "@/app/actions";
 import type { ApiKeyDto, ApiScope } from "@/lib/services/api-keys";
+import { BUTTON_PRIMARY, ERROR_BANNER, FIELD } from "./styles";
 
 export function ApiKeyManager({ keys }: { keys: ApiKeyDto[] }) {
   const [name, setName] = useState("");
@@ -31,19 +33,20 @@ export function ApiKeyManager({ keys }: { keys: ApiKeyDto[] }) {
     });
   }
 
-  const input = "rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-stone-500";
+  const input = `${FIELD} text-sm`;
 
   return (
     <div className="mt-4">
       {newKey && (
-        <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
-          <p className="font-medium text-amber-900">请立即复制，此 Key 只显示一次：</p>
-          <code className="mt-2 block break-all rounded bg-white p-2 text-xs">{newKey}</code>
+        <div className="mb-4 rounded-xl border border-warn-line bg-warn-soft p-3 text-sm text-warn-fg">
+          <p className="font-medium">请立即复制，此 Key 只显示一次：</p>
+          <code className="mt-2 block rounded-lg border border-line bg-surface p-2 text-xs break-all text-fg">{newKey}</code>
           <button
             type="button"
-            className="mt-2 text-xs underline"
+            className="mt-2 inline-flex items-center gap-1 rounded text-xs underline underline-offset-2"
             onClick={() => navigator.clipboard.writeText(newKey)}
           >
+            <Copy className="h-3.5 w-3.5" aria-hidden />
             复制
           </button>
         </div>
@@ -55,25 +58,34 @@ export function ApiKeyManager({ keys }: { keys: ApiKeyDto[] }) {
           <option value="write">write</option>
           <option value="read">read</option>
         </select>
-        <button type="submit" disabled={pending} className="rounded-lg bg-stone-900 px-4 py-2 text-sm text-white disabled:opacity-50">
+        <button type="submit" disabled={pending} className={`px-4 py-2 text-sm ${BUTTON_PRIMARY}`}>
           创建
         </button>
       </form>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className={`mt-3 ${ERROR_BANNER}`}>
+          {error}
+        </p>
+      )}
 
-      <ul className="mt-4 divide-y divide-stone-100">
-        {keys.length === 0 && <li className="py-3 text-sm text-stone-500">暂无 API Key</li>}
+      <ul className="mt-4 divide-y divide-line">
+        {keys.length === 0 && <li className="py-3 text-sm text-subtle">暂无 API Key</li>}
         {keys.map((k) => (
           <li key={k.id} className="flex items-center justify-between gap-2 py-3 text-sm">
             <div className="min-w-0">
               <p className="font-medium">
-                {k.name} <span className="ml-1 rounded bg-stone-100 px-1.5 py-0.5 text-xs text-stone-600">{k.scope}</span>
+                {k.name} <span className="ml-1 rounded bg-surface-2 px-1.5 py-0.5 text-xs text-muted">{k.scope}</span>
               </p>
-              <p className="text-xs text-stone-500">
+              <p className="text-xs text-subtle">
                 {k.prefix}… · 最近使用 {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : "从未"}
               </p>
             </div>
-            <button type="button" disabled={pending} onClick={() => revoke(k)} className="text-xs text-red-600 hover:underline">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => revoke(k)}
+              className="shrink-0 rounded-lg px-2 py-1 text-xs text-danger transition-colors hover:bg-danger-soft disabled:opacity-50"
+            >
               吊销
             </button>
           </li>
