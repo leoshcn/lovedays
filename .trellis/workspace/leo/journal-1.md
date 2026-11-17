@@ -75,3 +75,25 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 3: Single pin, delete in edit dialog, form relayout + deploy
+
+**Date**: 2026-11-17
+**Task**: Single pin, delete in edit dialog, form relayout + deploy
+**Branch**: `main`
+
+### Summary
+
+Only one pinned day per user (service-level, transactional unpin of others; REST/MCP docs updated, test added). Delete button moved from home cards into edit dialog footer. Edit dialog relayout; fixed repeat row wrapping caused by w-full vs w-20 conflict. Deployed d1845fd to deploy host via scripts/deploy.sh; health ok; user accepted.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d1845fd` | (see git log) |
+| `9e672e2` | (see git log) |
+
+### Status
+
+[OK] **Completed**

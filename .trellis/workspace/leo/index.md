@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 2
+- **Total Sessions**: 3
 - **Last Active**: 2026-11-17
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~77 | Active |
+| `journal-1.md` | ~99 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 3 | 2026-11-17 | Single pin, delete in edit dialog, form relayout + deploy | `d1845fd`, `9e672e2` | `main` |
 | 2 | 2026-11-17 | 倒数日类别字段与首页过滤 | `a72f68d`, `41d911b` | `main` |
 | 1 | 2026-11-17 | LoveDays MVP: 初始化、开发、Docker 部署与开源 | `719752e`, `59faaa9`, `c7f0f59`, `b62fd72`, `105af1c`, `b90117c`, `9343aeb`, `4c7ee33`, `586f18a`, `a1382df` | `main` |
 <!-- @@@/auto:session-history -->
