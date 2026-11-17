@@ -118,3 +118,29 @@ Only one pinned day per user (service-level, transactional unpin of others; REST
 ### Status
 
 [OK] **Completed**
+
+
+## Session 5: iOS 倒数日小组件：API Widget 端点与 Scriptable 脚本
+
+**Date**: 2026-11-17
+**Task**: iOS 倒数日小组件：API Widget 端点与 Scriptable 脚本
+**Branch**: `main`
+
+### Summary
+
+新增 GET /api/v1/widget/w12（W12 行数组，最多 12 行/24 字），支持把只读 Key 放在 URL 里（authenticateRequest 的 urlKey 选项，写 Key 返回 403）。抓包发现 API Widget App 会丢弃查询参数，于是加了路径形式 /api/v1/widget/w12/<key>；响应改为 charset=utf-8 加 ASCII 转义。API Widget 的主题字体没有中文字形（方块），因此改用 Scriptable：scripts/scriptable/lovedays-widget.js 通过 Bearer 请求头调用 /api/v1/days，服务器地址和 Key 存在 iOS 钥匙串里；支持小/中/大和锁屏小组件、离线缓存；小号显示 4 行（置顶在前），只有名称和右对齐的天数数字。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7e44311` | (see git log) |
+| `cd6d433` | (see git log) |
+| `7d3ad20` | (see git log) |
+| `8fb1418` | (see git log) |
+| `117fdf7` | (see git log) |
+| `8585348` | (see git log) |
+
+### Status
+
+[OK] **Completed**

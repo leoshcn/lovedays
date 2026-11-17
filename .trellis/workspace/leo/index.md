@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
+- **Total Sessions**: 5
 - **Last Active**: 2026-11-17
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~120 | Active |
+| `journal-1.md` | ~146 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-11-17 | iOS 倒数日小组件：API Widget 端点与 Scriptable 脚本 | `7e44311`, `cd6d433`, `7d3ad20`, `8fb1418`, `117fdf7`, `8585348` | `main` |
 | 4 | 2026-11-17 | 视觉设计优化与暗色模式 | `160b3cd` | `main` |
 | 3 | 2026-11-17 | Single pin, delete in edit dialog, form relayout + deploy | `d1845fd`, `9e672e2` | `main` |
 | 2 | 2026-11-17 | 倒数日类别字段与首页过滤 | `a72f68d`, `41d911b` | `main` |
