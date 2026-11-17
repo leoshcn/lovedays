@@ -1,5 +1,5 @@
-import { and, eq, lt } from "drizzle-orm";
-import { getDb, schema } from "@/lib/db";
+import { and, eq, lt, ne } from "drizzle-orm";
+import { getDb, schema, type Db } from "@/lib/db";
 import type { DayRow } from "@/lib/db/schema";
 import { DEFAULT_CATEGORY, type CategoryNames, type DayCategory } from "@/lib/days/categories";
 import { computeDay, describe, sortDays, todayIn, type ComputedDay } from "@/lib/days/engine";
@@ -15,6 +15,7 @@ import { getCategoryNames } from "./categories";
 /**
  * Day service. Auth-agnostic: callers (web actions, REST, MCP) resolve the userId first.
  * Every read purges the user's expired one-time days (lazy deletion — no cron needed).
+ * At most one day per user is pinned: pinning a day unpins the user's other days.
  */
 
 export interface DayDto extends ComputedDay {
@@ -93,6 +94,16 @@ function assertNotExpired(v: { kind: DayRow["kind"]; targetDate: string }, today
   }
 }
 
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+
+/** Single-pin rule: unpin every other pinned day of the user. */
+async function unpinOthers(tx: Tx, userId: string, keepId: string): Promise<void> {
+  await tx
+    .update(day)
+    .set({ pinned: false, updatedAt: new Date() })
+    .where(and(eq(day.userId, userId), eq(day.pinned, true), ne(day.id, keepId)));
+}
+
 export async function listDays(userId: string): Promise<DayDto[]> {
   const today = await userToday(userId);
   await purgeExpired(userId, today);
@@ -126,21 +137,25 @@ export async function createDay(userId: string, input: CreateDayInput): Promise<
   const today = await userToday(userId);
   assertNotExpired(data, today);
   const db = await getDb();
-  const [row] = await db
-    .insert(day)
-    .values({
-      id: crypto.randomUUID(),
-      userId,
-      title: data.title,
-      targetDate: data.targetDate,
-      kind: data.kind,
-      repeatUnit: data.repeatUnit ?? null,
-      repeatInterval: data.repeatInterval ?? null,
-      note: data.note || null,
-      pinned: data.pinned ?? false,
-      category: inputCategory(data) ?? DEFAULT_CATEGORY,
-    })
-    .returning();
+  const id = crypto.randomUUID();
+  const [row] = await db.transaction(async (tx) => {
+    if (data.pinned) await unpinOthers(tx, userId, id);
+    return tx
+      .insert(day)
+      .values({
+        id,
+        userId,
+        title: data.title,
+        targetDate: data.targetDate,
+        kind: data.kind,
+        repeatUnit: data.repeatUnit ?? null,
+        repeatInterval: data.repeatInterval ?? null,
+        note: data.note || null,
+        pinned: data.pinned ?? false,
+        category: inputCategory(data) ?? DEFAULT_CATEGORY,
+      })
+      .returning();
+  });
   return toDto(row!, today, await getCategoryNames(userId));
 }
 
@@ -163,21 +178,24 @@ export async function updateDay(userId: string, id: string, input: UpdateDayInpu
   const today = await userToday(userId);
   assertNotExpired(merged, today);
   const db = await getDb();
-  const [row] = await db
-    .update(day)
-    .set({
-      title: merged.title,
-      targetDate: merged.targetDate,
-      kind: merged.kind,
-      repeatUnit: merged.repeatUnit ?? null,
-      repeatInterval: merged.repeatInterval ?? null,
-      note: merged.note || null,
-      pinned: merged.pinned ?? false,
-      category: merged.category ?? DEFAULT_CATEGORY,
-      updatedAt: new Date(),
-    })
-    .where(and(eq(day.id, id), eq(day.userId, userId)))
-    .returning();
+  const [row] = await db.transaction(async (tx) => {
+    if (merged.pinned) await unpinOthers(tx, userId, id);
+    return tx
+      .update(day)
+      .set({
+        title: merged.title,
+        targetDate: merged.targetDate,
+        kind: merged.kind,
+        repeatUnit: merged.repeatUnit ?? null,
+        repeatInterval: merged.repeatInterval ?? null,
+        note: merged.note || null,
+        pinned: merged.pinned ?? false,
+        category: merged.category ?? DEFAULT_CATEGORY,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(day.id, id), eq(day.userId, userId)))
+      .returning();
+  });
   return toDto(row!, today, await getCategoryNames(userId));
 }
 

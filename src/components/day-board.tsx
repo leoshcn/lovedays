@@ -54,9 +54,6 @@ export function DayBoard({ days, today, names, category }: Props) {
       busy: pending,
       onEdit: () => setEditing({ mode: "edit", day }),
       onTogglePin: () => act(() => togglePinAction(day.id, !day.pinned)),
-      onDelete: () => {
-        if (confirm(`确定删除「${day.title}」？`)) act(() => deleteDayAction(day.id));
-      },
     };
   }
 
@@ -100,6 +97,14 @@ export function DayBoard({ days, today, names, category }: Props) {
               editing.mode === "edit" ? await updateDayAction(editing.day.id, input) : await createDayAction(input);
             return r.ok ? null : r.error;
           }}
+          onDelete={
+            editing.mode === "edit"
+              ? async () => {
+                  const r = await deleteDayAction(editing.day.id);
+                  return r.ok ? null : r.error;
+                }
+              : undefined
+          }
         />
       )}
     </>

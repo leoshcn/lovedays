@@ -106,6 +106,21 @@ describe("day service", () => {
     await expect(days.getDay(OTHER, d.id)).rejects.toMatchObject({ code: "not_found" });
     expect(await days.listDays(OTHER)).toEqual([]);
   });
+
+  it("keeps at most one pinned day per user", async () => {
+    const future = shift(todayIn(TZ), 10);
+    const a = await days.createDay(USER, { title: "A", targetDate: future, kind: "countup", pinned: true });
+    const other = await days.createDay(OTHER, { title: "O", targetDate: future, kind: "countup", pinned: true });
+    const b = await days.createDay(USER, { title: "B", targetDate: future, kind: "countup", pinned: true });
+    let pinned = (await days.listDays(USER)).filter((d) => d.pinned).map((d) => d.id);
+    expect(pinned).toEqual([b.id]);
+    await days.setPinned(USER, a.id, true);
+    pinned = (await days.listDays(USER)).filter((d) => d.pinned).map((d) => d.id);
+    expect(pinned).toEqual([a.id]);
+    // Other users' pins are untouched.
+    expect((await days.getDay(OTHER, other.id)).pinned).toBe(true);
+    await days.deleteDay(OTHER, other.id);
+  });
 });
 
 describe("REST API", () => {

@@ -63,7 +63,7 @@ export function createMcpServer(p: ApiPrincipal): McpServer {
     {
       title: "Update day",
       description:
-        "Update fields of a day. Only provided fields change. Use pinned=true/false to pin or unpin; category to reclassify.",
+        "Update fields of a day. Only provided fields change. Use pinned=true/false to pin or unpin (only one day can be pinned; pinning unpins the previous one); category to reclassify.",
       inputSchema: { ...idShape, ...updateDayShape },
     },
     ({ id, ...patch }) =>

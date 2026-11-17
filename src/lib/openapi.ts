@@ -15,7 +15,7 @@ const dayDto = {
     kind: { type: "string", enum: [...DAY_KINDS] },
     repeatUnit: { type: ["string", "null"], enum: [...REPEAT_UNITS, null] },
     repeatInterval: { type: ["integer", "null"] },
-    pinned: { type: "boolean" },
+    pinned: { type: "boolean", description: "At most one day is pinned; pinning a day unpins the previously pinned one" },
     category: {
       type: "string",
       enum: [...DAY_CATEGORIES],

@@ -26,11 +26,10 @@ interface Props {
   hero?: boolean;
   onEdit: () => void;
   onTogglePin: () => void;
-  onDelete: () => void;
   busy?: boolean;
 }
 
-export function DayCard({ day, hero, onEdit, onTogglePin, onDelete, busy }: Props) {
+export function DayCard({ day, hero, onEdit, onTogglePin, busy }: Props) {
   const c = colorStyle(day.category);
   const isToday = day.status === "today";
 
@@ -41,9 +40,6 @@ export function DayCard({ day, hero, onEdit, onTogglePin, onDelete, busy }: Prop
       </button>
       <button type="button" disabled={busy} onClick={onEdit} className="rounded px-2 py-1 hover:bg-black/10">
         编辑
-      </button>
-      <button type="button" disabled={busy} onClick={onDelete} className="rounded px-2 py-1 hover:bg-black/10">
-        删除
       </button>
     </div>
   );
