@@ -64,7 +64,17 @@ claude mcp add --transport http lovedays http://localhost:3000/api/mcp \
   --header "Authorization: Bearer ld_..."
 ```
 
+### iOS 小组件（Scriptable，推荐）
+
+[`scripts/scriptable/lovedays-widget.js`](scripts/scriptable/lovedays-widget.js)：在 [Scriptable](https://scriptable.app) 里新建脚本并粘贴这个文件。第一次在 App 里运行时，按提示填写服务器地址和**只读** API Key，两者都存在 iOS 钥匙串里。之后在桌面或锁屏添加 Scriptable 小组件，并选择这个脚本。
+
+- 支持小 / 中 / 大桌面小组件和锁屏小组件，颜色和类别一致；中文用系统字体显示
+- 通过 `Authorization: Bearer` 请求头调用 `/api/v1/days`，Key 不会出现在 URL 里
+- 断网时显示上次成功获取的数据
+
 ### iOS 小组件（API Widget）
+
+> API Widget 的所有主题字体都不含中文字形，中文会显示成方块，所以更推荐上面的 Scriptable 方案。
 
 [API Widget](https://apiwidget.com/docs) 不能发送自定义请求头，所以提供专用端点 `GET /api/v1/widget/w12`，直接返回 W12 模板的行数组（最多 12 行，每个字段最多 24 字）。这个端点允许把**只读** Key 放在 URL 里：路径形式 `/api/v1/widget/w12/ld_...`，或查询参数形式 `?key=ld_...`。写权限 Key 放在 URL 里会返回 403，其他 REST 端点仍然只接受请求头。
 
