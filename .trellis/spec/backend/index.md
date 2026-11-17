@@ -10,3 +10,4 @@ Stack: TypeScript (strict), Drizzle ORM on PostgreSQL (PGlite locally), Better A
 | [Error Handling](./error-handling.md) | AppError, edge mapping | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Standards, tests, forbidden patterns | Filled |
 | [Logging Guidelines](./logging-guidelines.md) | What and how to log | Filled |
+| [API Compatibility](./api-compatibility.md) | Superseding public fields across REST/MCP/OpenAPI | Filled |

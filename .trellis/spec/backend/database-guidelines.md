@@ -15,3 +15,20 @@
 const rows = await db.delete(day).where(and(eq(day.id, id), eq(day.userId, userId))).returning({ id: day.id });
 if (rows.length === 0) throw new AppError("not_found", "Day not found");
 ```
+
+### Design Decision: Rename a column in TS only, keep the SQL name
+
+**Context**: `day.color` became the semantic `category` (same 7 keys). A real column rename makes `drizzle-kit generate` stop at an interactive rename prompt, and generated SQL must not be hand-edited.
+
+**Decision**: change the TS property, keep the DB column name; document the mismatch inline.
+
+```ts
+// DB column stays "color" (historical): value is the category key; color is derived from it.
+category: text("color", { enum: DAY_CATEGORIES }).notNull().default("rose"),
+```
+
+**Verify**: after `pnpm db:generate`, the new migration must not touch the table (drizzle diffs by column name). If drizzle-kit prompts about a rename, the mapping is wrong — fix the schema, never answer the prompt with rename.
+
+### Convention: per-user overrides of fixed defaults
+
+Store only rows that differ from the default (`category_label`: PK `(user_id, category)`, FK cascade on user). Saving a blank value **or a value equal to the default** deletes the row; reads merge overrides onto defaults (`resolveCategoryNames`). Every query filters by `userId`.
