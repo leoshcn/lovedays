@@ -203,9 +203,15 @@ describe("W12 widget endpoint", () => {
       widgetKeyRoute.GET(new Request(`http://localhost/api/v1/widget/w12/${key}`), {
         params: Promise.resolve({ key }),
       });
+    const created = await days.createDay(USER, { title: "纪念日🎂", kind: "countup", targetDate: "2020-01-01" });
     const ok = await at(readKey);
     expect(ok.status).toBe(200);
-    expect(Array.isArray(await ok.json())).toBe(true);
+    expect(ok.headers.get("content-type")).toBe("application/json; charset=utf-8");
+    const body = await ok.text();
+    // ASCII-only body: clients that ignore the charset still decode Chinese correctly.
+    expect(/^[\x00-\x7e]*$/.test(body)).toBe(true);
+    expect(JSON.parse(body)).toContainEqual(expect.objectContaining({ key: "纪念日🎂" }));
+    await days.deleteDay(USER, created.id);
     expect((await at(writeKey)).status).toBe(403);
     expect((await at("ld_nope")).status).toBe(401);
     expect((await at("nope")).status).toBe(401);

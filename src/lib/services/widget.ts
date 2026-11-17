@@ -8,6 +8,20 @@ export async function widgetW12(req: Request, urlKey: string | null): Promise<W1
   return toW12Rows(await listDays(p.userId));
 }
 
+/**
+ * JSON with every non-ASCII character escaped as `\uXXXX`. The iOS API Widget app ignored the
+ * missing charset and decoded UTF-8 as another encoding (garbled Chinese); an ASCII-only body
+ * decodes correctly whatever charset the client assumes.
+ */
+export function asciiJson(value: unknown): string {
+  return JSON.stringify(value).replace(
+    /[\u007f-￿]/g,
+    (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
+}
+
 export function w12Response(rows: W12Row[]): Response {
-  return Response.json(rows, { headers: { "cache-control": "no-store" } });
+  return new Response(asciiJson(rows), {
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+  });
 }
