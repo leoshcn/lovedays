@@ -7,3 +7,8 @@
 # picking either side (task state lives in task.json, not index.md). See
 # .trellis/spec/cli/backend/directory-structure.md for details.
 .trellis/workspace/*/journal-*.md merge=union
+
+# Deploy files are consumed on Linux: always LF (git archive honors this even with core.autocrlf)
+* text=auto eol=lf
+*.png binary
+*.ico binary
