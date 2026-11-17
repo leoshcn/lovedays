@@ -139,7 +139,8 @@ function renderSmall(w, days) {
     row.centerAlignContent();
     const title = text(row, d.title, Font.mediumSystemFont(14), FG);
     title.minimumScaleFactor = 0.75;
-    row.addSpacer(6);
+    row.addSpacer(6); // 名称过长时与数字之间的最小间距
+    row.addSpacer(); // 弹性空白把数字推到右侧对齐
     text(row, String(d.days), Font.boldRoundedSystemFont(17), catColor(d.category));
   });
 }
