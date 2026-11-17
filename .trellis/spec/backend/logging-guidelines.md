@@ -1,51 +1,7 @@
 # Logging Guidelines
 
-> How logging is done in this project.
+Current state: no logging library. The only log is `console.error("[lovedays] unexpected error", err)` in `toAppError` (`src/lib/errors.ts`).
 
----
-
-## Overview
-
-<!--
-Document your project's logging conventions here.
-
-Questions to answer:
-- What logging library do you use?
-- What are the log levels and when to use each?
-- What should be logged?
-- What should NOT be logged (PII, secrets)?
--->
-
-(To be filled by the team)
-
----
-
-## Log Levels
-
-<!-- When to use each level: debug, info, warn, error -->
-
-(To be filled by the team)
-
----
-
-## Structured Logging
-
-<!-- Log format, required fields -->
-
-(To be filled by the team)
-
----
-
-## What to Log
-
-<!-- Important events to log -->
-
-(To be filled by the team)
-
----
-
-## What NOT to Log
-
-<!-- Sensitive data, PII, secrets -->
-
-(To be filled by the team)
+- Prefix logs with `[lovedays]`.
+- Log unexpected errors only; expected `AppError`s are not logged.
+- Never log API keys, passwords, session tokens or full request bodies.

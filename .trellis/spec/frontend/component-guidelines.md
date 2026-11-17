@@ -1,59 +1,8 @@
 # Component Guidelines
 
-> How components are built in this project.
-
----
-
-## Overview
-
-<!--
-Document your project's component conventions here.
-
-Questions to answer:
-- What component patterns do you use?
-- How are props defined?
-- How do you handle composition?
-- What accessibility standards apply?
--->
-
-(To be filled by the team)
-
----
-
-## Component Structure
-
-<!-- Standard structure of a component file -->
-
-(To be filled by the team)
-
----
-
-## Props Conventions
-
-<!-- How props should be defined and typed -->
-
-(To be filled by the team)
-
----
-
-## Styling Patterns
-
-<!-- How styles are applied (CSS modules, styled-components, Tailwind, etc.) -->
-
-(To be filled by the team)
-
----
-
-## Accessibility
-
-<!-- A11y requirements and patterns -->
-
-(To be filled by the team)
-
----
-
-## Common Mistakes
-
-<!-- Component-related mistakes your team has made -->
-
-(To be filled by the team)
+- Pages are **server components**: they call `requireUser()` and services directly, then pass DTOs to client components. Mark pages `export const dynamic = "force-dynamic"` when they read user data.
+- Client components (`"use client"`) handle interaction only and call server actions from `src/app/actions.ts`.
+- Named exports, PascalCase components, kebab-case filenames.
+- Styling: Tailwind utility classes inline. Color variants must come from `components/colors.ts` (static class strings so Tailwind can detect them) — never build class names like `` `bg-${color}-500` ``.
+- Text is Chinese; status labels mirror `describe()` in `lib/days/engine.ts` (「距离 X 还有 N 天」/「X 已经 N 天」/「X 就是今天」).
+- Destructive actions use `confirm()` before calling the action.

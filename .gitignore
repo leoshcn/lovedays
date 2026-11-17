@@ -32,3 +32,10 @@ Thumbs.db
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Local embedded database (PGlite)
+.data/
+
+# Next.js
+next-env.d.ts
+*.tsbuildinfo

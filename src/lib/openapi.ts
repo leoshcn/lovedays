@@ -1,0 +1,138 @@
+import { z } from "zod";
+import { DAY_KINDS, REPEAT_UNITS } from "@/lib/days/engine";
+import { createDaySchema, DAY_COLORS, updateDaySchema } from "@/lib/days/schemas";
+
+const dayDto = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    title: { type: "string" },
+    note: { type: ["string", "null"] },
+    targetDate: { type: "string", format: "date" },
+    kind: { type: "string", enum: [...DAY_KINDS] },
+    repeatUnit: { type: ["string", "null"], enum: [...REPEAT_UNITS, null] },
+    repeatInterval: { type: ["integer", "null"] },
+    pinned: { type: "boolean" },
+    color: { type: "string", enum: [...DAY_COLORS] },
+    status: {
+      type: "string",
+      enum: ["upcoming", "today", "elapsed"],
+      description: "upcoming: counting down; today: the day itself; elapsed: countup days after target",
+    },
+    days: { type: "integer", description: "Days until displayDate (upcoming) or since targetDate (elapsed)" },
+    displayDate: { type: "string", format: "date", description: "Target date or next repeat occurrence" },
+    label: { type: "string", description: "Human-readable label in Chinese" },
+    createdAt: { type: "string", format: "date-time" },
+    updatedAt: { type: "string", format: "date-time" },
+  },
+};
+
+const error = {
+  type: "object",
+  properties: {
+    error: {
+      type: "object",
+      properties: {
+        code: { type: "string", enum: ["unauthorized", "forbidden", "not_found", "validation_error", "internal"] },
+        message: { type: "string" },
+      },
+    },
+  },
+};
+
+const errRef = { content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } };
+const dayRes = (description: string) => ({
+  description,
+  content: {
+    "application/json": {
+      schema: { type: "object", properties: { data: { $ref: "#/components/schemas/Day" } } },
+    },
+  },
+});
+const idParam = [{ name: "id", in: "path", required: true, schema: { type: "string" } }];
+
+export function buildOpenApiDocument() {
+  return {
+    openapi: "3.1.0",
+    info: {
+      title: "LoveDays API",
+      version: "1.0.0",
+      description:
+        "Countdown / anniversary days. Authenticate with `Authorization: Bearer ld_...` (create keys in Settings). " +
+        "One-time (`once`) days are deleted automatically after their date passes.",
+    },
+    servers: [{ url: "/api/v1" }],
+    security: [{ apiKey: [] }],
+    components: {
+      securitySchemes: { apiKey: { type: "http", scheme: "bearer", description: "LoveDays API key (ld_...)" } },
+      schemas: {
+        Day: dayDto,
+        CreateDay: z.toJSONSchema(createDaySchema, { io: "input" }),
+        UpdateDay: z.toJSONSchema(updateDaySchema, { io: "input" }),
+        Error: error,
+      },
+    },
+    paths: {
+      "/days": {
+        get: {
+          summary: "List days (pinned first, then soonest)",
+          responses: {
+            "200": {
+              description: "Days",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: { data: { type: "array", items: { $ref: "#/components/schemas/Day" } } },
+                  },
+                },
+              },
+            },
+            "401": { description: "Unauthorized", ...errRef },
+          },
+        },
+        post: {
+          summary: "Create a day (write scope)",
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: { $ref: "#/components/schemas/CreateDay" } } },
+          },
+          responses: {
+            "201": dayRes("Created"),
+            "400": { description: "Validation error", ...errRef },
+            "401": { description: "Unauthorized", ...errRef },
+            "403": { description: "Read-only key", ...errRef },
+          },
+        },
+      },
+      "/days/{id}": {
+        parameters: idParam,
+        get: {
+          summary: "Get a day",
+          responses: { "200": dayRes("Day"), "404": { description: "Not found", ...errRef } },
+        },
+        patch: {
+          summary: "Update a day (write scope)",
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateDay" } } },
+          },
+          responses: {
+            "200": dayRes("Updated"),
+            "400": { description: "Validation error", ...errRef },
+            "403": { description: "Read-only key", ...errRef },
+            "404": { description: "Not found", ...errRef },
+          },
+        },
+        delete: {
+          summary: "Delete a day (write scope)",
+          responses: {
+            "204": { description: "Deleted" },
+            "403": { description: "Read-only key", ...errRef },
+            "404": { description: "Not found", ...errRef },
+          },
+        },
+      },
+    },
+  };
+}
